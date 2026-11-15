@@ -1,0 +1,3140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess 2</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(circle at 25% 5%, #1c2a46 0%, #0a0e18 65%);
+    color:#e6edfb;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  header{
+    display:flex;align-items:center;gap:18px;
+    padding:14px 26px 10px;
+    flex-wrap:wrap;
+  }
+  h1{
+    margin:0;font-size:22px;letter-spacing:3px;font-weight:800;
+    background:linear-gradient(90deg,#7fd1ff,#b58cff 60%,#ff9ecd);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  h1 span{opacity:.85;}
+  .status{
+    font-size:14px;font-weight:600;padding:7px 16px;border-radius:20px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(140,180,255,.2);
+    transition:.25s;
+  }
+  .status.check{background:rgba(255,80,80,.18);border-color:rgba(255,110,110,.65);color:#ffb3b3;box-shadow:0 0 18px rgba(255,60,60,.35);}
+  .status.over{background:rgba(120,255,190,.15);border-color:rgba(120,255,190,.6);color:#a9ffd8;box-shadow:0 0 22px rgba(80,255,180,.3);}
+  .status.reality{background:rgba(255,200,60,.2);border-color:rgba(255,220,100,.75);color:#ffe082;box-shadow:0 0 22px rgba(255,200,60,.5);}
+  header button{
+    margin-left:auto;padding:8px 18px;border-radius:10px;cursor:pointer;
+    background:linear-gradient(135deg,#3d63b8,#7a4fd0);color:#fff;font-weight:600;
+    border:1px solid rgba(180,200,255,.35);font-size:13px;transition:.2s;
+  }
+  header button:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(90,110,255,.4);}
+
+  .main{
+    display:flex;gap:22px;padding:6px 26px 26px;align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .boardArea{flex:0 0 auto;display:flex;justify-content:center;align-items:flex-start;gap:18px;flex-wrap:wrap;}
+  #board{
+    display:grid;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 26px 60px rgba(0,0,0,.7), 0 0 0 3px #2b3550, 0 0 0 4px rgba(120,160,255,.15);
+    background:#1a2132;
+  }
+  #board2{
+    display:none;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 26px 60px rgba(0,0,0,.7), 0 0 0 3px #4a3060, 0 0 0 4px rgba(180,120,255,.25);
+    background:#1a2132;
+    align-self:flex-start;
+  }
+  .cell{
+    width:var(--cell);height:var(--cell);
+    position:relative;display:flex;align-items:center;justify-content:center;
+    user-select:none;
+  }
+  .cell.light{background:#cbd8ea;}
+  .cell.dark{background:#5a6d8c;}
+  .cell.blocked{background:#171b25 !important;}
+  .cell.blocked::after{
+    content:'✕';position:absolute;font-size:calc(var(--cell)*0.42);
+    color:#4a5266;font-weight:700;
+  }
+  .cell.green{background:#2e7d32 !important;}
+  .cell.blue{background:#1565c0 !important;}
+  .cell.red{background:#c62828 !important;}
+  .cell.fire{background:#ff6d00 !important; box-shadow:inset 0 0 12px #ffab00;}
+  .cell.circle{background:#1e88e5 !important; box-shadow:inset 0 0 8px #90caf9;}
+  .cell.clubsZone{box-shadow:inset 0 0 0 2px rgba(120,60,180,.55);}
+  .cell.sun{background:#ffb300 !important; box-shadow:inset 0 0 16px #fff176;}
+  .cell.moon{background:#263238 !important; box-shadow:inset 0 0 16px #90a4ae;}
+  .cell.endgame{box-shadow:inset 0 0 0 3px gold, inset 0 0 20px rgba(255,215,0,.6);}
+  .cell.gold{background:#ffd54f !important; box-shadow:inset 0 0 0 3px #ffb300, inset 0 0 16px #ffeb3b;}
+  .cell.wifi{background:#00acc1 !important; box-shadow:inset 0 0 14px #4dd0e1;}
+  .cell.dynamite{background:#5d4037 !important; box-shadow:inset 0 0 18px #ff5722;}
+  .cell.meteor{background:#424242 !important; box-shadow:inset 0 0 14px #ff8a65;}
+  .cell.lastmove{box-shadow:inset 0 0 0 100px rgba(255,214,120,.22);}
+  .cell.selected{box-shadow:inset 0 0 0 3px #ffd166, inset 0 0 0 100px rgba(255,209,102,.18);}
+  .cell.movehint::after{
+    content:'';position:absolute;width:28%;height:28%;border-radius:50%;
+    background:rgba(70,230,150,.75);box-shadow:0 0 14px rgba(70,230,150,.85);
+  }
+  .cell.capture::after{
+    content:'';position:absolute;inset:7%;border-radius:50%;
+    border:3px solid rgba(255,90,90,.85);box-shadow:0 0 14px rgba(255,80,80,.6);
+  }
+  .piece{
+    font-size:calc(var(--cell)*0.84);
+    line-height:1;user-select:none;pointer-events:none;
+    filter:drop-shadow(0 3px 3px rgba(0,0,0,.5));
+    transition:opacity .3s;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .piece[data-type="p"]{ font-size:calc(var(--cell)*0.62); }
+  .piece[data-type="c"]{ font-size:calc(var(--cell)*1.05); line-height:1; }
+  .piece[data-type="dino"]{ font-size:calc(var(--cell)*0.68); }
+  .piece[data-type="bowl"]{ font-size:calc(var(--cell)*0.5); }
+  .piece[data-type="ghost"]{ font-size:calc(var(--cell)*0.78); }
+  .piece[data-type="dragon"]{ font-size:calc(var(--cell)*0.82); }
+  .piece[data-type="monolith"]{ font-size:calc(var(--cell)*0.78); }
+  .piece[data-type="demon"]{ font-size:calc(var(--cell)*0.78); }
+  .piece.pw{color:#ffffff;-webkit-text-stroke:1.4px #2b3448;}
+  .piece.pb{color:#161c2b;-webkit-text-stroke:1.4px #93a2bd;}
+  .piece.statue{filter:grayscale(1) brightness(.65);opacity:.8;}
+  .piece.ghost{opacity:.85;}
+  .piece.berserk{filter:drop-shadow(0 0 8px rgba(255,80,80,.9));}
+  .piece.yellow{filter:drop-shadow(0 0 8px #ffeb3b);}
+  .piece.suited{filter:drop-shadow(0 0 7px #00e5ff);}
+  .piece.pw.ghost-piece{filter:drop-shadow(0 0 10px #ffeb3b) brightness(1.4);}
+  .piece.pb.ghost-piece{filter:drop-shadow(0 0 10px #2196f3) brightness(1.4);}
+  .piece.demon-piece{filter:drop-shadow(0 0 8px #d32f2f);}
+  .piece.purple{filter:drop-shadow(0 0 8px #9c27b0) hue-rotate(270deg);}
+  .piece.holy{filter:drop-shadow(0 0 10px #fff59d) brightness(1.3);}
+  .piece.eye{filter:drop-shadow(0 0 10px #8e24aa);}
+  .marker{
+    position:absolute;font-size:calc(var(--cell)*0.5);pointer-events:none;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));
+  }
+  .marker-portal{
+    position:absolute;font-size:calc(var(--cell)*0.35);pointer-events:none;
+    top:2px;left:2px;opacity:.9;
+  }
+  .marker-suit{
+    position:absolute;font-size:calc(var(--cell)*0.34);pointer-events:none;
+    top:1px;left:2px;opacity:.95;font-weight:900;
+    text-shadow:0 1px 2px rgba(0,0,0,.7);
+  }
+  .marker-sun{
+    position:absolute;font-size:calc(var(--cell)*0.34);pointer-events:none;
+    top:1px;right:2px;opacity:.95;
+  }
+  .marker-num{
+    position:absolute;font-size:calc(var(--cell)*0.42);pointer-events:none;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+    color:#ffe082;font-weight:900;text-shadow:0 2px 4px rgba(0,0,0,.9);
+  }
+  .coord{position:absolute;font-size:9px;font-weight:700;color:rgba(0,0,0,.42);pointer-events:none;}
+  .dark .coord{color:rgba(255,255,255,.55);}
+  .coord.file{right:3px;bottom:1px;}
+  .coord.rank{left:3px;top:1px;}
+
+  .side{width:340px;display:flex;flex-direction:column;gap:12px;flex:1 1 300px;max-width:400px;}
+  .panel{
+    background:rgba(19,27,44,.75);
+    border:1px solid rgba(120,160,220,.16);
+    border-radius:14px;padding:10px 12px;
+    backdrop-filter:blur(9px);
+    transition:.25s;
+  }
+  .panel.active{
+    border-color:rgba(110,230,170,.6);
+    box-shadow:0 0 26px rgba(70,220,150,.18), inset 0 0 22px rgba(70,220,150,.05);
+  }
+  .phead{font-size:13px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#c3d3ee;text-transform:uppercase;}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+  .dot.white{background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8);}
+  .dot.black{background:#0e1320;border:1px solid #7d8aa5;}
+  .cards{display:flex;flex-direction:column;gap:7px;}
+  .card{
+    display:grid;grid-template-columns:40px 1fr;align-items:center;
+    gap:0 10px;padding:7px 10px;border-radius:10px;cursor:pointer;
+    background:linear-gradient(135deg,rgba(90,130,200,.24),rgba(140,100,220,.16));
+    border:1px solid rgba(140,180,255,.22);
+    transition:.15s;
+  }
+  .card:hover{transform:translateY(-2px);border-color:rgba(160,210,255,.65);box-shadow:0 6px 18px rgba(0,0,0,.45);}
+  .card.disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.75);}
+  .card.disabled:hover{transform:none;box-shadow:none;border-color:rgba(140,180,255,.22);}
+  .cicon{grid-row:1/3;font-size:25px;text-align:center;line-height:1;}
+  .cname{font-size:12.5px;font-weight:700;color:#dbe8ff;}
+  .cdesc{font-size:10.5px;color:#93a4c4;line-height:1.3;}
+  .logPanel{max-height:190px;display:flex;flex-direction:column;}
+  .log{overflow-y:auto;font-size:11px;line-height:1.55;color:#9fb0cf;display:flex;flex-direction:column;gap:2px;}
+  .log div{border-bottom:1px dashed rgba(120,160,220,.1);padding-bottom:2px;}
+  .log::-webkit-scrollbar{width:6px;}
+  .log::-webkit-scrollbar-thumb{background:rgba(120,160,220,.3);border-radius:3px;}
+  @media(max-width:860px){
+    .main{padding:6px 10px 20px;gap:12px;}
+    .side{width:100%;max-width:none;}
+    header{padding:10px 14px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>CHESS <span>2</span></h1>
+  <div id="status" class="status">Ход белых</div>
+  <button id="newGameBtn">Новая игра</button>
+</header>
+
+<div class="main">
+  <div class="boardArea">
+    <div id="board"></div>
+    <div id="board2"></div>
+  </div>
+  <aside class="side">
+    <section class="panel" id="panelB">
+      <div class="phead"><span class="dot black"></span> Чёрные</div>
+      <div class="cards"></div>
+    </section>
+    <section class="panel" id="panelW">
+      <div class="phead"><span class="dot white"></span> Белые</div>
+      <div class="cards"></div>
+    </section>
+    <section class="panel logPanel">
+      <div class="phead">Журнал</div>
+      <div id="log" class="log"></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================ КОНСТАНТЫ ============================ */
+const SIZE = 16;
+const INIT = { minR:4, maxR:11, minC:4, maxC:11, kingCol:8, leftRookCol:4, rightRookCol:11 };
+const KNIGHT_D = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+const KING_D   = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const ROOK_D   = [[-1,0],[1,0],[0,-1],[0,1]];
+const BISHOP_D = [[-1,-1],[-1,1],[1,-1],[1,1]];
+const KNIGHT_DIST = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+const PIECE_CHARS = {k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟', c:'●', bowl:'🎳', dino:'🦖',
+                     monolith:'🗿', dragon:'🐉', ghost:'👻', demon:'👹'};
+
+const CARDS = [
+  {id:'bishopsKnights',     icon:'♞', name:'Слоны-кони',        desc:'Все слоны навсегда начинают ходить как кони.'},
+  {id:'kingQueenSwap',      icon:'⇄', name:'Обмен К и Ф',       desc:'Ваши король и ферзь меняются местами.'},
+  {id:'pawnToRook',         icon:'♜', name:'Пешка-ладья',       desc:'Случайная ваша пешка становится ладьёй.'},
+  {id:'kingImmune',         icon:'🛡', name:'Неуязвимый король', desc:'Ваш король неуязвим 3 хода.'},
+  {id:'noCapture',          icon:'🚫', name:'Запрет взятий',     desc:'Противник не может рубить фигуры 1 ход.'},
+  {id:'knightsSwap',        icon:'🐴', name:'Обмен конями',      desc:'Кони игроков меняются местами.'},
+  {id:'enemyPawnColor',     icon:'🎨', name:'Перебежчик',        desc:'Случайная пешка противника меняет цвет.'},
+  {id:'blockTwo',           icon:'⛔', name:'Двойная блокировка',desc:'Два случайных пустых поля становятся заблокированными.'},
+  {id:'pawnForwardCapture', icon:'🗡', name:'Пешка-берсерк',    desc:'Случайная ваша пешка может рубить вперёд.'},
+  {id:'bishopsRooks',       icon:'♖', name:'Слоны-ладьи',       desc:'Следующие три хода слоны ходят как ладьи.'},
+  {id:'pawnVanish',         icon:'💨', name:'Исчезновение',      desc:'Случайная пешка противника исчезает.'},
+  {id:'kingTwoStep',        icon:'👑', name:'Дальний король',    desc:'Ваш король может ходить на две клетки два хода (кроме доски 2).'},
+  {id:'expandBoard',        icon:'🔲', name:'Расширение',        desc:'Доска расширяется на одно поле во все стороны.'},
+  {id:'enemyBishopToPawn',  icon:'♟', name:'Разжалование',      desc:'Случайный слон противника становится пешкой.'},
+  {id:'mine',               icon:'💣', name:'Мина',              desc:'Случайное пустое поле заминировано.'},
+  {id:'centerBlock',        icon:'🏛', name:'Центр закрыт',      desc:'Если центральные клетки пусты — они становятся недоступны.'},
+  {id:'newPawn',            icon:'➕', name:'Пополнение',        desc:'На вашей половине появляется новая пешка.'},
+  {id:'swapHalves',         icon:'🔀', name:'Зеркало',           desc:'Расположение фигур на половинах доски меняется местами.'},
+  {id:'enemyKnightStatue',  icon:'🗿', name:'Статуя',            desc:'Случайный конь противника превращается в статую на 3 хода.'},
+  {id:'blockLine',          icon:'➖', name:'Закрытая линия',    desc:'Свободная линия доски становится недоступна.'},
+  {id:'flagMines',          icon:'🚩', name:'Флажки',            desc:'На пяти свободных полях появляются флажки (50% взрыв).'},
+  {id:'knightsBackward',    icon:'↩', name:'Кони назад',         desc:'Все кони следующие 4 хода ходят только назад.'},
+  {id:'pawnsAnyDir',        icon:'✳', name:'Вольные пешки',     desc:'5 ходов пешки ходят в любую сторону на 1 поле.'},
+  {id:'opponentNoCards2',   icon:'🔒', name:'Блок карт',          desc:'Противник не может использовать карты 2 хода.'},
+  {id:'pawnTempQueen',      icon:'👑', name:'Пешка-ферзь',        desc:'Случайная пешка временно ходит как ферзь на 2 хода.'},
+  {id:'knightsRooks',       icon:'♖', name:'Кони-ладьи',          desc:'Кони ходят как ладьи 3 хода.'},
+  {id:'enemyQueenAsPawn',   icon:'♟', name:'Ферзь-пешка',         desc:'Ферзь противника ходит как пешка 2 хода.'},
+  {id:'portal',             icon:'🌀', name:'Портал',             desc:'Две случайные клетки соединяются как портал.'},
+  {id:'swapWithEnemy',      icon:'⇄', name:'Обмен с врагом',      desc:'Поменяться местами со случайной фигурой противника.'},
+  {id:'shiftEnemyPiece',    icon:'➡', name:'Сдвиг врага',        desc:'Сдвинуть случайную фигуру противника на одну свободную клетку.'},
+  {id:'swapHands',          icon:'🃏', name:'Обмен картами',      desc:'Поменяться картами с противником.'},
+  {id:'shuffleAllPieces',   icon:'🔀', name:'Перемешка',          desc:'Все фигуры на доске меняются местами случайным образом.'},
+  {id:'captureLosePawn',    icon:'💀', name:'Кровавая жатва',     desc:'При взятии фигуры противник теряет случайную пешку.'},
+  {id:'copyPawn',           icon:'👥', name:'Копия пешки',        desc:'Создать копию своей пешки на соседнем свободном поле.'},
+  {id:'enemyPawnsBackward', icon:'⬇', name:'Пешки назад',        desc:'Пешки противника 5 ходов ходят только назад.'},
+  {id:'replaceEnemyCards',  icon:'🎴', name:'Сброс карт',         desc:'Заменить все карты противника на случайные.'},
+  {id:'blockSix',           icon:'⛔', name:'Массовая блокировка',desc:'Заблокировать шесть случайных свободных клеток.'},
+  {id:'knightToQueen',      icon:'👑', name:'Конь-ферзь',         desc:'Один случайный конь становится ферзём.'},
+  {id:'enemyQueenToPawn',   icon:'♟', name:'Разжалование Ф',      desc:'Ферзь противника превращается в пешку.'},
+  {id:'halfPiecesVanish',   icon:'💨', name:'Исчезновение',       desc:'Половина всех пешек пропадают.'},
+  {id:'threeKnightsEach',   icon:'🐴', name:'Три коня',           desc:'У каждого появляется три коня.'},
+  {id:'pawnsTwoStep',       icon:'⏩', name:'Двойной шаг',        desc:'5 ходов пешки могут ходить вперёд на две клетки.'},
+  {id:'greenDarkCells',     icon:'🟢', name:'Зелёные клетки',     desc:'Половина чёрных клеток становятся зелёными.'},
+  {id:'blueLightCells',     icon:'🔵', name:'Синие клетки',       desc:'Половина белых клеток становятся синими.'},
+  {id:'checkers',           icon:'⚪', name:'Шашка',              desc:'Каждый игрок получает по одной шашке.'},
+  {id:'cornerRooks',        icon:'🏰', name:'Угловые ладьи',      desc:'По углам доски появляются ладьи.'},
+  {id:'redCellsBlock',      icon:'🟥', name:'Красные клетки',     desc:'10 клеток краснеют и через 3 хода блокируются.'},
+  {id:'clownHat',           icon:'🤡', name:'Шляпа клоуна',       desc:'Король противника надевает шляпу клоуна.'},
+  {id:'cup',                icon:'🏆', name:'Кубок',              desc:'На случайной клетке появляется кубок (превращает в ферзя).'},
+  {id:'kingAsRook',         icon:'♜', name:'Король-ладья',       desc:'В следующий ход король может двигаться как ладья (на доске 1).'},
+  {id:'bishopsStatues',     icon:'🗿', name:'Слоны-статуи',       desc:'Все слоны становятся статуями навсегда.'},
+  {id:'noCards5',           icon:'🚫', name:'Запрет карт',        desc:'Карточки нельзя использовать следующие 5 ходов.'},
+  {id:'knightify',          icon:'🐴', name:'Конификация',        desc:'При взятии пешка игрока превращается в коня.'},
+  {id:'whitePenalty',       icon:'⚪', name:'Белый штраф',        desc:'Белые теряют случайную фигуру.'},
+  {id:'blackShot',          icon:'⚫', name:'Чёрный!',            desc:'Случайная чёрная фигура получает выстрел.'},
+  {id:'blitz',              icon:'⏱', name:'Блиц',               desc:'3 хода по 5 секунд, иначе ход пропускается.'},
+  {id:'freeze',             icon:'❄', name:'Заморозка',           desc:'Выбранная фигура противника замораживается на 2 хода.'},
+  {id:'flagCapture',        icon:'🏁', name:'Захват Флага',       desc:'Зелёный флаг: король при подборе спавнит ферзя.'},
+  {id:'noDraws',            icon:'♻', name:'Без Ничьих',          desc:'Пат телепортирует короля на случайную клетку.'},
+  {id:'mutant',             icon:'🎳', name:'Мутант',             desc:'Случайная пешка становится шаром для боулинга.'},
+  {id:'redCard',            icon:'🟥', name:'Красная карточка',   desc:'Противник пропускает ход.'},
+  {id:'noughts',            icon:'⭕', name:'Нолики',             desc:'5 синих кружков: ферзь и ладья не могут на них ходить.'},
+  {id:'uno',                icon:'🃏', name:'UNO',                desc:'3 фигуры перемешиваются, буквы U,N,O дают жёлтый цвет.'},
+  {id:'fire',               icon:'🔥', name:'Пожар',              desc:'Огонь из угла распространяется каждые 7 ходов.'},
+  {id:'bioWeapon',          icon:'☣', name:'Биологическое Оружие',desc:'Слоны и кони вымирают в течении трёх ходов.'},
+  {id:'dinosaur',           icon:'🦖', name:'Динозавр',           desc:'Динозавр ходит на 2 клетки, неуязвим к пешкам и коням.'},
+  {id:'fourthDim',          icon:'🔮', name:'Четвёртое Измерение',desc:'Появляется вторая доска 4×4. Король там ходит только на 1 клетку.'},
+  {id:'worms',     icon:'♥', name:'Черви',      desc:'Поле-черви: фигура на нём сможет ходить как конь (5 ходов).'},
+  {id:'diamonds',  icon:'♦', name:'Бубна',      desc:'Поле-бубна: фигура на нём становится слоном (5 ходов).'},
+  {id:'clubs',     icon:'♣', name:'Трефы',      desc:'Поле-трефы: клетки в радиусе 1 недоступны для королей, пешек и коней.'},
+  {id:'spades',    icon:'♠', name:'Пики',       desc:'Поле-пики: фигура на нём сможет ходить как ладья (5 ходов).'},
+  {id:'bishopify', icon:'♝', name:'Ослонение',  desc:'Все пешки становятся слонами.'},
+  {id:'sun',       icon:'☀', name:'Солнце',     desc:'Солнце (5 ходов): чёрные фигуры не могут наступать на него.'},
+  {id:'moon',      icon:'🌙', name:'Луна',      desc:'Луна (5 ходов): белые фигуры не могут наступать на неё.'},
+  {id:'mobilization', icon:'🚩', name:'Мобилизация', desc:'Спавнит две пешки рядом с вашим королем.'},
+  {id:'liberation',   icon:'🕊', name:'Освобождение', desc:'Половина закрытых и бонусных полей становятся обычными.'},
+  {id:'monolith',     icon:'🗿', name:'Монолит',      desc:'Случайный ферзь становится монолитом, превращающим коней рядом в динозавров.'},
+  {id:'dragon',       icon:'🐉', name:'Дракон',       desc:'Случайный ферзь становится драконом: ходит ровно на 2 клетки, неуязвим для коней и слонов.'},
+  {id:'pacman',       icon:'👻', name:'Пакман',       desc:'Каждый игрок получает призрака на 3 хода (неуязвим, ходит на 3 клетки по прямой).'},
+  {id:'demons',       icon:'👹', name:'Демоны',       desc:'Два демона появляются на доске, двигаются случайно и едят фигуры рядом.'},
+  {id:'monopoly',     icon:'🏠', name:'Монополия',    desc:'На случайной клетке появляется домик: слон, встав на него, становится ладьёй.'},
+  {id:'territoryExpand', icon:'🗺', name:'Расширение территории', desc:'Четвёртое измерение становится размером 8×8.'},
+  {id:'infiniteVoid',    icon:'🕳', name:'Бесконечная пустота',   desc:'Доска становится обычной, фигуры случайно расставляются на своих половинах.'},
+  {id:'evilTomb',        icon:'⚰', name:'Гробница Зла',           desc:'Вокруг каждого короля появляются по две ладьи.'},
+  {id:'origins',         icon:'🌱', name:'Истоки',                desc:'Игроки получают по две шашки возле своих королей.'},
+  {id:'barracks',        icon:'🏛', name:'Казарма',               desc:'Появляется казарма: если рядом только 1 фигура игрока — она создаёт пешку.'},
+  {id:'evolution',       icon:'🧬', name:'Эволюция',              desc:'Все пешки могут ходить наискосок в любую сторону на 1 клетку.'},
+  {id:'respect',         icon:'🤝', name:'Респект',               desc:'Поля в радиусе 3 от короля противника становятся обычными.'},
+  {id:'unbounded',       icon:'♾', name:'Безграничность',         desc:'Края доски соединяются. Король, ферзь, слон и конь — только через 5 ходов.'},
+  {id:'dnd',             icon:'🎲', name:'D&D',                   desc:'10 ходов: при взятии бросок d20, при <10 взятие не удаётся, атакующий исчезает.'},
+  {id:'stalemateReality',icon:'🌀', name:'Тупиковая реальность',   desc:'Если фигур <6: игроки получают по 2 слона и 2 шашки, в центре 4 клетки для победы.'},
+
+  /* ===== НОВЫЕ КАРТОЧКИ ===== */
+  {id:'horseHead',    icon:'🐴', name:'Голова Коня',    desc:'Все кони теперь ходят как слоны (навсегда).'},
+  {id:'monarch',      icon:'🔮', name:'Монарх',         desc:'Случайный слон становится фиолетовым и ходит через одну клетку в любом направлении.'},
+  {id:'dynamite',     icon:'🧨', name:'Динамит',        desc:'Динамит взорвёт всё в радиусе 1 через 3 хода.'},
+  {id:'wifi',         icon:'📶', name:'Вай-Фай',        desc:'Фигура на клетке вайфая ходит в радиусе 3, но не может рубить.'},
+  {id:'meteorites',   icon:'☄', name:'Метеориты',       desc:'На 3 клетки падают метеориты, все динозавры умирают.'},
+  {id:'northCentral', icon:'🧭', name:'Северный централ',desc:'Центральные клетки получают бонусы мастей.'},
+  {id:'angel',        icon:'😇', name:'Ангел',          desc:'Случайная ладья с нимбом: сбрасывает эффект клетки, ходит по запретным.'},
+  {id:'cheats',       icon:'🃏', name:'Читы',           desc:'У всех теперь по четыре карты.'},
+  {id:'illuminati',   icon:'👁', name:'Иллюминат',      desc:'Случайный слон становится глазом: ходит как ферзь, рубит только на 1 по диагонали.'},
+  {id:'anchor',       icon:'⚓', name:'Якорь',           desc:'Случайная фигура противника (кроме короля) заморожена на 3 хода.'},
+  {id:'superiority',  icon:'⭐', name:'Превосходство',  desc:'5 жёлтых клеток: король на них создаёт шашку, клетка становится обычной.'},
+  {id:'algebra',      icon:'🔢', name:'Алгебра',        desc:'3 клетки с цифрами 1-3. Король соберёт по порядку — все фигуры врага исчезнут.'}
+];
+
+/* ============================ СОСТОЯНИЕ ============================ */
+let uid = 1;
+let G = null;
+
+function key(r,c){ return r+','+c; }
+function oppOf(c){ return c==='w'?'b':'w'; }
+function mk(color,type){
+  return {id:uid++, color, type, moved:false, statue:0, canCaptureForward:false,
+          tempQueen:0, frozen:0, yellow:false, 
+          suitKnightTurns:0, suitRookTurns:0, tempBishopTurns:0, originalType:null,
+          ghostTurns:0,
+          isMonarch:false, isAngel:false, isEye:false,
+          anchorTurns:0};
+}
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; }
+function sqName(r,c,b2){ 
+  if(b2) return 'B2:' + String.fromCharCode(97 + (c - G.b2.minC)) + (G.b2.maxR - r + 1);
+  return String.fromCharCode(97 + (c - G.minC)) + (G.maxR - r + 1);
+}
+
+function inB(r,c){ return r>=G.minR && r<=G.maxR && c>=G.minC && c<=G.maxC; }
+function inB2(r,c){ return r>=G.b2.minR && r<=G.b2.maxR && c>=G.b2.minC && c<=G.b2.maxC; }
+function isBlockedCell(r,c){ return G.blocked.has(key(r,c)) || G.fire.has(key(r,c)); }
+function isGreenBlue(r,c){ return G.greenCells.has(key(r,c)) || G.blueCells.has(key(r,c)); }
+function isClubsRestricted(r,c,pieceType){
+  if(!G.clubsZones.has(key(r,c))) return false;
+  return pieceType === 'k' || pieceType === 'p' || pieceType === 'n';
+}
+function isSunForbidden(r,c,pieceColor){
+  if(G.sunCells.has(key(r,c)) && pieceColor === 'b') return true;
+  if(G.moonCells.has(key(r,c)) && pieceColor === 'w') return true;
+  return false;
+}
+function isInvulnerable(p){ return p && p.type === 'ghost'; }
+function isDragonImmuneTo(attackerType, targetType){
+  return targetType === 'dragon' && (attackerType === 'n' || attackerType === 'b');
+}
+function wrapTo(r,c){
+  const H = G.maxR - G.minR + 1;
+  const W = G.maxC - G.minC + 1;
+  const nr = ((r - G.minR) % H + H) % H + G.minR;
+  const nc = ((c - G.minC) % W + W) % W + G.minC;
+  return {r: nr, c: nc};
+}
+function canWrapPiece(p){
+  if(!G.eff.unbounded) return false;
+  if(p.type === 'p') return false;
+  if(G.eff.unboundedDelay > 0){
+    if(p.type === 'k' || p.type === 'q' || p.type === 'b' || p.type === 'n') return false;
+  }
+  return true;
+}
+function canEnterCell(r,c,p){
+  if(p.isAngel) return true;
+  if(isBlockedCell(r,c)) return false;
+  if(isGreenBlue(r,c) && p.type === 'n') return false;
+  if(isClubsRestricted(r,c,p.type)) return false;
+  return true;
+}
+
+function allPieces(color, includeB2){
+  const out=[];
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    const p=G.board[r][c];
+    if(p && (!color || p.color===color) && p.color !== 'n') out.push({p,r,c,b2:false});
+  }
+  if(includeB2 && G.b2Active){
+    for(let r=G.b2.minR;r<=G.b2.maxR;r++) for(let c=G.b2.minC;c<=G.b2.maxC;c++){
+      const p=G.board2[r][c];
+      if(p && (!color || p.color===color) && p.color !== 'n') out.push({p,r,c,b2:true});
+    }
+  }
+  return out;
+}
+function findPiece(color,type){
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    const p=G.board[r][c];
+    if(p && p.color===color && p.type===type) return {p,r,c,b2:false};
+  }
+  if(G.b2Active){
+    for(let r=G.b2.minR;r<=G.b2.maxR;r++) for(let c=G.b2.minC;c<=G.b2.maxC;c++){
+      const p=G.board2[r][c];
+      if(p && p.color===color && p.type===type) return {p,r,c,b2:true};
+    }
+  }
+  return null;
+}
+function findKing(color){
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    const p=G.board[r][c];
+    if(p && p.color===color && p.type==='k') return {r,c,b2:false};
+  }
+  if(G.b2Active){
+    for(let r=G.b2.minR;r<=G.b2.maxR;r++) for(let c=G.b2.minC;c<=G.b2.maxC;c++){
+      const p=G.board2[r][c];
+      if(p && p.color===color && p.type==='k') return {r,c,b2:true};
+    }
+  }
+  return null;
+}
+function emptyCells(){
+  const out=[];
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    if(!G.board[r][c] && !G.blocked.has(key(r,c)) && !G.fire.has(key(r,c))) out.push({r,c});
+  }
+  return out;
+}
+function emptyCells2(){
+  const out=[];
+  if(!G.b2Active) return out;
+  for(let r=G.b2.minR;r<=G.b2.maxR;r++) for(let c=G.b2.minC;c<=G.b2.maxC;c++){
+    if(!G.board2[r][c]) out.push({r,c});
+  }
+  return out;
+}
+function trulyFreeCells(){
+  const out=[];
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    if(!G.board[r][c] && !G.blocked.has(key(r,c)) && !G.fire.has(key(r,c))
+       && !G.greenCells.has(key(r,c)) && !G.blueCells.has(key(r,c))) out.push({r,c});
+  }
+  return out;
+}
+function getLinkFromMain(r,c){
+  if(!G.b2Active) return null;
+  for(const L of G.b2Links) if(L.main.r===r && L.main.c===c) return L;
+  return null;
+}
+function getLinkFromSecond(r,c){
+  if(!G.b2Active) return null;
+  for(const L of G.b2Links) if(L.second.r===r && L.second.c===c) return L;
+  return null;
+}
+
+/* ========== ВОССТАНОВЛЕНИЕ КОРОЛЕЙ ========== */
+function ensureKings(){
+  let restored = false;
+  for(const col of ['w','b']){
+    const k = findKing(col);
+    let needsRespawn = false;
+    if(!k){
+      needsRespawn = true;
+      log(`⚠️ Король ${col==='w'?'белых':'чёрных'} пропал — восстановление...`);
+    } else if(!k.b2 && (G.blocked.has(key(k.r, k.c)) || G.fire.has(key(k.r, k.c)))){
+      G.board[k.r][k.c] = null;
+      needsRespawn = true;
+      log(`⚠️ Король ${col==='w'?'белых':'чёрных'} оказался в опасной зоне — пересадка...`);
+    }
+    if(needsRespawn){
+      let cells = trulyFreeCells();
+      if(cells.length === 0) cells = emptyCells();
+      if(cells.length === 0 && G.b2Active){
+        const c2 = emptyCells2();
+        if(c2.length) cells = c2;
+      }
+      if(cells.length === 0){
+        for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++) cells.push({r,c});
+      }
+      if(cells.length > 0){
+        const t = pick(cells);
+        if(G.board[t.r] && G.board[t.r][t.c]) G.board[t.r][t.c] = null;
+        const np = mk(col, 'k');
+        np.moved = true;
+        G.board[t.r][t.c] = np;
+        log(`✅ Король ${col==='w'?'белых':'чёрных'} появился на ${sqName(t.r,t.c)}.`);
+        restored = true;
+      }
+    }
+  }
+  return restored;
+}
+
+/* ============================ ГЕНЕРАЦИЯ ХОДОВ ============================ */
+function slideMoves(r,c,p,dirs){
+  if(canWrapPiece(p)){
+    const res = [];
+    const H = G.maxR - G.minR + 1;
+    const W = G.maxC - G.minC + 1;
+    const maxSteps = H * W;
+    for(const [dr,dc] of dirs){
+      let tr = r, tc = c;
+      const seen = new Set([key(tr,tc)]);
+      for(let step = 0; step < maxSteps; step++){
+        const w = wrapTo(tr + dr, tc + dc);
+        tr = w.r; tc = w.c;
+        if(seen.has(key(tr,tc))) break;
+        seen.add(key(tr,tc));
+        if(!canEnterCell(tr,tc,p)) break;
+        if((p.type==='q'||p.type==='r'||p.type==='bowl') && G.circles.has(key(tr,tc))) break;
+        const t = G.board[tr][tc];
+        if(t){
+          if(t.color!==p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type,t.type) && !G.eff.wifiNoCaptureOnCell[key(tr,tc)])
+            res.push({from:{r,c},to:{r:tr,c:tc},capture:true});
+          break;
+        }
+        if(!isSunForbidden(tr,tc,p.color))
+          res.push({from:{r,c},to:{r:tr,c:tc},capture:false});
+      }
+    }
+    return res;
+  }
+  const res=[];
+  for(const [dr,dc] of dirs){
+    let tr=r+dr, tc=c+dc;
+    while(inB(tr,tc)){
+      if(!canEnterCell(tr,tc,p)) break;
+      if((p.type==='q'||p.type==='r'||p.type==='bowl') && G.circles.has(key(tr,tc))) break;
+      const t=G.board[tr][tc];
+      if(t){
+        if(t.color!==p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type))
+          res.push({from:{r,c},to:{r:tr,c:tc},capture:true});
+        break;
+      }
+      if(!isSunForbidden(tr,tc,p.color))
+        res.push({from:{r,c},to:{r:tr,c:tc},capture:false});
+      tr+=dr; tc+=dc;
+    }
+  }
+  return res;
+}
+
+function knightLikeMoves(r,c,p){
+  const res=[];
+  for(const [dr,dc] of KNIGHT_D){
+    let tr=r+dr, tc=c+dc;
+    if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+    if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+  }
+  return res;
+}
+
+function checkerMoves(r,c,p){
+  const res=[];
+  for(const [dr,dc] of KING_D){
+    let tr=r+dr, tc=c+dc;
+    if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+    if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+  }
+  return res;
+}
+
+function knightMoves(r,c,p){
+  if(G.eff.knightsRooks > 0){
+    return slideMoves(r,c,p,ROOK_D);
+  }
+  if(G.eff.horseHead){
+    return bishopMoves(r,c,p);
+  }
+  const res=[];
+  for(const [dr,dc] of KNIGHT_D){
+    let tr=r+dr, tc=c+dc;
+    if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+    if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    if(G.eff.knightsBackward>0){
+      const back = p.color==='w' ? dr>0 : dr<0;
+      if(!back) continue;
+    }
+    if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+  }
+  return res;
+}
+
+function bishopMoves(r,c,p){
+  if(G.eff.bishopsRooks>0) return slideMoves(r,c,p,ROOK_D);
+  if(G.eff.bishopsKnights) return knightLikeMoves(r,c,p);
+  return slideMoves(r,c,p,BISHOP_D);
+}
+
+function monarchMoves(r,c,p){
+  // слон, ходит через одну клетку в любом из 8 направлений (прыжок на 2 по диагонали и по прямой? Описание "в любом направлении" → 8 направлений, шаг 2)
+  const res=[];
+  for(const [dr,dc] of KING_D){
+    const tr=r+dr*2, tc=c+dc*2;
+    if(!inB(tr,tc)) continue;
+    if(!canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+  }
+  return res;
+}
+
+function eyeMoves(r,c,p){
+  // как ферзь, но рубит только на 1 по диагонали
+  const res = [];
+  const dirs = ROOK_D.concat(BISHOP_D);
+  for(const [dr,dc] of dirs){
+    let tr = r+dr, tc = c+dc;
+    while(inB(tr,tc)){
+      if(!canEnterCell(tr,tc,p)) break;
+      const t = G.board[tr][tc];
+      if(t){
+        if(t.color !== p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type)){
+          const isDiagonalOneStep = (Math.abs(tr-r)===1 && Math.abs(tc-c)===1);
+          if(isDiagonalOneStep && !G.eff.wifiNoCaptureOnCell[key(tr,tc)])
+            res.push({from:{r,c},to:{r:tr,c:tc},capture:true});
+        }
+        break;
+      }
+      if(!isSunForbidden(tr,tc,p.color))
+        res.push({from:{r,c},to:{r:tr,c:tc},capture:false});
+      tr += dr; tc += dc;
+    }
+  }
+  return res;
+}
+
+function dragonMoves(r,c,p){
+  const res=[];
+  const offsets = [[-2,0],[-2,-2],[-2,2],[0,-2],[0,2],[2,-2],[2,0],[2,2]];
+  for(const [dr,dc] of offsets){
+    let tr=r+dr, tc=c+dc;
+    if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+    if(!inB(tr,tc)) continue;
+    if(!canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+  }
+  return res;
+}
+
+function ghostMoves(r,c,p){
+  const res=[];
+  for(const [dr,dc] of ROOK_D){
+    let tr=r+dr*3, tc=c+dc*3;
+    if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+    if(!inB(tr,tc)) continue;
+    if(!canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+  }
+  return res;
+}
+
+function wifiMoves(r,c,p){
+  const res=[];
+  for(let dr=-3; dr<=3; dr++){
+    for(let dc=-3; dc<=3; dc++){
+      if(dr===0 && dc===0) continue;
+      const tr=r+dr, tc=c+dc;
+      if(!inB(tr,tc)) continue;
+      if(!canEnterCell(tr,tc,p)) continue;
+      if(isSunForbidden(tr,tc,p.color)) continue;
+      const t=G.board[tr][tc];
+      if(t) continue; // не рубит
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:false});
+    }
+  }
+  return res;
+}
+
+function dinoMoves(r,c,p){
+  const res=[];
+  for(let dr=-2; dr<=2; dr++){
+    for(let dc=-2; dc<=2; dc++){
+      if(dr===0 && dc===0) continue;
+      let tr=r+dr, tc=c+dc;
+      if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+      if(!inB(tr,tc)) continue;
+      if(!canEnterCell(tr,tc,p)) continue;
+      if(isSunForbidden(tr,tc,p.color)) continue;
+      const t=G.board[tr][tc];
+      if(t && t.color===p.color) continue;
+      if(t && isInvulnerable(t)) continue;
+      if(t && isDragonImmuneTo(p.type, t.type)) continue;
+      if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+    }
+  }
+  return res;
+}
+
+function pawnMoves(r,c,p,forAttack){
+  if(p.tempQueen > 0){
+    return slideMoves(r,c,p, ROOK_D.concat(BISHOP_D));
+  }
+  const res = [];
+  if(G.eff.evolution){
+    for(const [dr,dc] of BISHOP_D){
+      const tr = r + dr, tc = c + dc;
+      if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+      if(isSunForbidden(tr,tc,p.color)) continue;
+      const t = G.board[tr][tc];
+      if(t && t.color === p.color) continue;
+      if(t && (isInvulnerable(t) || isDragonImmuneTo(p.type, t.type))) continue;
+      if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+    }
+  }
+  if(G.eff.pawnsBackward[p.color] > 0){
+    const dir = p.color==='w' ? 1 : -1;
+    const fr = r + dir;
+    if(inB(fr,c) && canEnterCell(fr,c,p) && !isSunForbidden(fr,c,p.color)){
+      const t = G.board[fr][c];
+      if(!t && !forAttack) res.push({from:{r,c},to:{r:fr,c:c},capture:false});
+      if(t && t.color!==p.color && p.canCaptureForward && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type)) res.push({from:{r,c},to:{r:fr,c:c},capture:true});
+    }
+    for(const dc of [-1,1]){
+      const tr = r + dir, tc = c + dc;
+      if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+      if(isSunForbidden(tr,tc,p.color)) continue;
+      const t = G.board[tr][tc];
+      if(t && t.color!==p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type) && !G.eff.wifiNoCaptureOnCell[key(tr,tc)]) res.push({from:{r,c},to:{r:tr,c:tc},capture:true});
+    }
+    return res;
+  }
+  const dir = p.color==='w' ? -1 : 1;
+  if(G.eff.pawnsAnyDir>0){
+    for(const [dr,dc] of KING_D){
+      const tr=r+dr, tc=c+dc;
+      if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+      if(isSunForbidden(tr,tc,p.color)) continue;
+      const t=G.board[tr][tc];
+      if(t && t.color===p.color) continue;
+      if(t && isInvulnerable(t)) continue;
+      if(t && isDragonImmuneTo(p.type, t.type)) continue;
+      if(t && G.eff.wifiNoCaptureOnCell[key(tr,tc)]) continue;
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+    }
+    return res;
+  }
+  const fr=r+dir;
+  if(inB(fr,c) && canEnterCell(fr,c,p) && !isSunForbidden(fr,c,p.color)){
+    const t=G.board[fr][c];
+    if(!t && !forAttack){
+      res.push({from:{r,c},to:{r:fr,c:c},capture:false});
+      if(!p.moved || G.eff.pawnsTwoStep > 0){
+        const fr2=r+2*dir;
+        if(inB(fr2,c) && canEnterCell(fr2,c,p) && !G.board[fr2][c] && !G.board[fr][c]
+           && !isSunForbidden(fr2,c,p.color)){
+          res.push({from:{r,c},to:{r:fr2,c:c},capture:false,double:true});
+        }
+      }
+    }
+    if(t && t.color!==p.color && p.canCaptureForward && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type)){
+      res.push({from:{r,c},to:{r:fr,c:c},capture:true});
+    }
+  }
+  for(const dc of [-1,1]){
+    const tr=r+dir, tc=c+dc;
+    if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board[tr][tc];
+    if(t && t.color!==p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type) && !G.eff.wifiNoCaptureOnCell[key(tr,tc)]){
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:true});
+    } else if(!t && G.enPassant && G.enPassant.r===tr && G.enPassant.c===tc){
+      const cr = p.color==='w' ? tr+1 : tr-1;
+      const cp = G.board[cr] ? G.board[cr][tc] : null;
+      if(cp && cp.type==='p' && cp.color!==p.color){
+        res.push({from:{r,c},to:{r:tr,c:tc},capture:true,enPassant:true});
+      }
+    }
+  }
+  return res;
+}
+
+function kingMoves(r,c,p){
+  if(G.eff.kingAsRook[p.color] > 0){
+    return slideMoves(r,c,p, ROOK_D);
+  }
+  const res=[];
+  const dist = G.eff.kingTwoStep[p.color]>0 ? 2 : 1;
+  for(const [dr,dc] of KING_D){
+    for(let k=1;k<=dist;k++){
+      let tr=r+dr*k, tc=c+dc*k;
+      if(canWrapPiece(p)){ const w = wrapTo(tr,tc); tr = w.r; tc = w.c; }
+      if(!inB(tr,tc) || !canEnterCell(tr,tc,p)) break;
+      if(isSunForbidden(tr,tc,p.color)) break;
+      const t=G.board[tr][tc];
+      if(t && t.color===p.color) break;
+      if(t && isInvulnerable(t)) break;
+      if(t && isDragonImmuneTo(p.type, t.type)) break;
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t});
+      if(t) break;
+    }
+  }
+  return res;
+}
+
+function addExtraMoves(res, r, c, p, extra){
+  for(const m of extra){
+    if(!res.some(x => x.to.r===m.to.r && x.to.c===m.to.c)){
+      res.push(m);
+    }
+  }
+}
+
+function pieceMoves(r,c,p,forAttack){
+  if(p.statue !== 0) return [];
+  if(p.frozen > 0) return [];
+  if(p.anchorTurns > 0) return [];
+  let res = [];
+  switch(p.type){
+    case 'p': res = pawnMoves(r,c,p,forAttack); break;
+    case 'n': res = knightMoves(r,c,p); break;
+    case 'b':
+      if(p.isMonarch) res = monarchMoves(r,c,p);
+      else if(p.isEye) res = eyeMoves(r,c,p);
+      else res = bishopMoves(r,c,p);
+      break;
+    case 'r':
+      if(p.isAngel) res = slideMoves(r,c,p,ROOK_D);
+      else res = slideMoves(r,c,p,ROOK_D);
+      break;
+    case 'bowl': res = slideMoves(r,c,p,ROOK_D); break;
+    case 'dino': res = dinoMoves(r,c,p); break;
+    case 'dragon': res = dragonMoves(r,c,p); break;
+    case 'ghost': res = ghostMoves(r,c,p); break;
+    case 'monolith': res = []; break;
+    case 'demon': res = []; break;
+    case 'q':
+      if(G.eff.queenAsPawn[p.color] > 0){
+        res = pawnMoves(r,c,p,forAttack);
+      } else {
+        res = slideMoves(r,c,p,ROOK_D.concat(BISHOP_D));
+      }
+      break;
+    case 'k': res = kingMoves(r,c,p); break;
+    case 'c': res = checkerMoves(r,c,p); break;
+    default: return [];
+  }
+
+  // Wi-Fi: extra 3-radius non-capture moves
+  if(G.wifiCells.has(key(r,c))){
+    addExtraMoves(res, r, c, p, wifiMoves(r,c,p));
+  }
+
+  if(p.type !== 'k' && p.suitKnightTurns > 0){
+    addExtraMoves(res, r, c, p, knightLikeMoves(r,c,p));
+  }
+  if(p.type !== 'k' && p.suitRookTurns > 0){
+    addExtraMoves(res, r, c, p, slideMoves(r,c,p,ROOK_D));
+  }
+
+  if(G.portals.length === 2){
+    const p1 = G.portals[0], p2 = G.portals[1];
+    let other = null;
+    if(r === p1.r && c === p1.c) other = p2;
+    else if(r === p2.r && c === p2.c) other = p1;
+    if(other){
+      const tr = other.r, tc = other.c;
+      if(inB(tr,tc) && canEnterCell(tr,tc,p) && !isSunForbidden(tr,tc,p.color)){
+        const t = G.board[tr][tc];
+        if(!t || (t.color !== p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type) && !G.eff.wifiNoCaptureOnCell[key(tr,tc)])){
+          if(!res.some(m => m.to.r === tr && m.to.c === tc)){
+            res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t, portal:true});
+          }
+        }
+      }
+    }
+  }
+  if(G.b2Active){
+    const L = getLinkFromMain(r,c);
+    if(L){
+      const tr = L.second.r, tc = L.second.c;
+      if(inB2(tr,tc)){
+        const t = G.board2[tr][tc];
+        if(!t || (t.color !== p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type))){
+          if(!res.some(m => m.to.r===tr && m.to.c===tc && m.toBoard2)){
+            res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,toBoard2:true,teleport:true});
+          }
+        }
+      }
+    }
+  }
+  return res;
+}
+
+/* ====== Второе измерение ====== */
+function slideMoves2(r,c,p,dirs){
+  const res=[];
+  for(const [dr,dc] of dirs){
+    let tr=r+dr, tc=c+dc;
+    while(inB2(tr,tc)){
+      const t=G.board2[tr][tc];
+      if(t){
+        if(t.color!==p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type))
+          res.push({from:{r,c},to:{r:tr,c:tc},capture:true,fromBoard2:true,toBoard2:true});
+        break;
+      }
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:false,fromBoard2:true,toBoard2:true});
+      tr+=dr; tc+=dc;
+    }
+  }
+  return res;
+}
+function knightMoves2(r,c,p){
+  const res=[];
+  for(const [dr,dc] of KNIGHT_D){
+    const tr=r+dr, tc=c+dc;
+    if(!inB2(tr,tc)) continue;
+    const t=G.board2[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,toBoard2:true});
+  }
+  return res;
+}
+function bishopMoves2(r,c,p){ return slideMoves2(r,c,p,BISHOP_D); }
+function dragonMoves2(r,c,p){
+  const res=[];
+  const offsets = [[-2,0],[-2,-2],[-2,2],[0,-2],[0,2],[2,-2],[2,0],[2,2]];
+  for(const [dr,dc] of offsets){
+    const tr=r+dr, tc=c+dc;
+    if(!inB2(tr,tc)) continue;
+    const t=G.board2[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,toBoard2:true});
+  }
+  return res;
+}
+function ghostMoves2(r,c,p){
+  const res=[];
+  for(const [dr,dc] of ROOK_D){
+    const tr=r+dr*3, tc=c+dc*3;
+    if(!inB2(tr,tc)) continue;
+    const t=G.board2[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,toBoard2:true});
+  }
+  return res;
+}
+function pawnMoves2(r,c,p,forAttack){
+  if(p.tempQueen > 0) return slideMoves2(r,c,p, ROOK_D.concat(BISHOP_D));
+  const res=[];
+  if(G.eff.evolution){
+    for(const [dr,dc] of BISHOP_D){
+      const tr = r + dr, tc = c + dc;
+      if(!inB2(tr,tc)) continue;
+      const t = G.board2[tr][tc];
+      if(t && t.color === p.color) continue;
+      if(t && (isInvulnerable(t) || isDragonImmuneTo(p.type, t.type))) continue;
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,toBoard2:true});
+    }
+  }
+  const dir = p.color==='w' ? -1 : 1;
+  const fr = r + dir;
+  if(inB2(fr,c)){
+    const t = G.board2[fr][c];
+    if(!t && !forAttack){
+      res.push({from:{r,c},to:{r:fr,c:c},capture:false,fromBoard2:true,toBoard2:true});
+      if(!p.moved){
+        const fr2=r+2*dir;
+        if(inB2(fr2,c) && !G.board2[fr2][c] && !t){
+          res.push({from:{r,c},to:{r:fr2,c:c},capture:false,double:true,fromBoard2:true,toBoard2:true});
+        }
+      }
+    }
+    if(t && t.color !== p.color && p.canCaptureForward && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type)){
+      res.push({from:{r,c},to:{r:fr,c:c},capture:true,fromBoard2:true,toBoard2:true});
+    }
+  }
+  for(const dc of [-1,1]){
+    const tr = r + dir, tc = c + dc;
+    if(!inB2(tr,tc)) continue;
+    const t = G.board2[tr][tc];
+    if(t && t.color !== p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type)){
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:true,fromBoard2:true,toBoard2:true});
+    }
+  }
+  return res;
+}
+function kingMoves2(r,c,p){
+  const res=[];
+  for(const [dr,dc] of KING_D){
+    const tr=r+dr, tc=c+dc;
+    if(!inB2(tr,tc)) continue;
+    if(!p.yellow && isBlockedCell(tr,tc)) continue;
+    if(isSunForbidden(tr,tc,p.color)) continue;
+    const t=G.board2[tr][tc];
+    if(t && t.color===p.color) continue;
+    if(t && isInvulnerable(t)) continue;
+    if(t && isDragonImmuneTo(p.type, t.type)) continue;
+    res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,toBoard2:true});
+  }
+  return res;
+}
+function dinoMoves2(r,c,p){
+  const res=[];
+  for(let dr=-2; dr<=2; dr++){
+    for(let dc=-2; dc<=2; dc++){
+      if(dr===0 && dc===0) continue;
+      const tr=r+dr, tc=c+dc;
+      if(!inB2(tr,tc)) continue;
+      const t=G.board2[tr][tc];
+      if(t && t.color===p.color) continue;
+      if(t && isInvulnerable(t)) continue;
+      if(t && isDragonImmuneTo(p.type, t.type)) continue;
+      res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,toBoard2:true});
+    }
+  }
+  return res;
+}
+function pieceMoves2(r,c,p,forAttack){
+  if(p.statue !== 0) return [];
+  if(p.frozen > 0) return [];
+  if(p.anchorTurns > 0) return [];
+  let res = [];
+  switch(p.type){
+    case 'p': res = pawnMoves2(r,c,p,forAttack); break;
+    case 'n': res = knightMoves2(r,c,p); break;
+    case 'b': res = bishopMoves2(r,c,p); break;
+    case 'r': res = slideMoves2(r,c,p,ROOK_D); break;
+    case 'bowl': res = slideMoves2(r,c,p,ROOK_D); break;
+    case 'dino': res = dinoMoves2(r,c,p); break;
+    case 'dragon': res = dragonMoves2(r,c,p); break;
+    case 'ghost': res = ghostMoves2(r,c,p); break;
+    case 'monolith': res = []; break;
+    case 'demon': res = []; break;
+    case 'q':
+      if(G.eff.queenAsPawn[p.color] > 0){ res = pawnMoves2(r,c,p,forAttack); }
+      else { res = slideMoves2(r,c,p,ROOK_D.concat(BISHOP_D)); }
+      break;
+    case 'k': res = kingMoves2(r,c,p); break;
+    case 'c': res = slideMoves2(r,c,p,KING_D); break;
+    default: return [];
+  }
+  if(p.type !== 'k' && p.suitKnightTurns > 0){ addExtraMoves(res, r, c, p, knightMoves2(r,c,p)); }
+  if(p.type !== 'k' && p.suitRookTurns > 0){ addExtraMoves(res, r, c, p, slideMoves2(r,c,p,ROOK_D)); }
+  if(G.b2Active){
+    const L = getLinkFromSecond(r,c);
+    if(L){
+      const tr = L.main.r, tc = L.main.c;
+      if(inB(tr,tc) && !isBlockedCell(tr,tc)){
+        const t = G.board[tr][tc];
+        if(!t || (t.color !== p.color && !isInvulnerable(t) && !isDragonImmuneTo(p.type, t.type))){
+          if(!res.some(m => m.to.r===tr && m.to.c===tc && !m.toBoard2)){
+            res.push({from:{r,c},to:{r:tr,c:tc},capture:!!t,fromBoard2:true,teleport:true});
+          }
+        }
+      }
+    }
+  }
+  return res;
+}
+
+function isAttackedBoard(r,c,by,isTargetB2){
+  if(!isTargetB2){
+    const target = G.board[r] ? G.board[r][c] : null;
+    for(let i=G.minR;i<=G.maxR;i++){
+      for(let j=G.minC;j<=G.maxC;j++){
+        const p=G.board[i][j];
+        if(!p || p.color!==by || p.color==='n') continue;
+        if(target && isDragonImmuneTo(p.type, target.type)) continue;
+        const ms = pieceMoves(i,j,p,true);
+        for(const m of ms){
+          if(m.to.r===r && m.to.c===c && !m.toBoard2) return true;
+        }
+      }
+    }
+  } else {
+    if(!G.b2Active) return false;
+    const target = G.board2[r] ? G.board2[r][c] : null;
+    for(let i=G.b2.minR;i<=G.b2.maxR;i++){
+      for(let j=G.b2.minC;j<=G.b2.maxC;j++){
+        const p=G.board2[i][j];
+        if(!p || p.color!==by || p.color==='n') continue;
+        if(target && isDragonImmuneTo(p.type, target.type)) continue;
+        const ms = pieceMoves2(i,j,p,true);
+        for(const m of ms){
+          if(m.to.r===r && m.to.c===c) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+function isAttacked(r,c,by){ return isAttackedBoard(r,c,by,false); }
+
+function castlingMoves(color){
+  const res=[];
+  const row = color==='w' ? INIT.maxR : INIT.minR;
+  const kc  = INIT.kingCol;
+  const k = G.board[row] ? G.board[row][kc] : null;
+  if(!k || k.type!=='k' || k.color!==color || k.moved || k.statue!==0 || k.frozen>0 || k.anchorTurns>0) return res;
+  const opp = oppOf(color);
+  if(isAttacked(row,kc,opp)) return res;
+  const rk = G.board[row][INIT.rightRookCol];
+  if(rk && rk.type==='r' && rk.color===color && !rk.moved){
+    let ok=true;
+    for(let c=kc+1;c<INIT.rightRookCol;c++){
+      if(G.board[row][c] || G.blocked.has(key(row,c))) ok=false;
+    }
+    if(ok && !isAttacked(row,kc+1,opp) && !isAttacked(row,kc+2,opp)){
+      res.push({from:{r:row,c:kc},to:{r:row,c:kc+2},capture:false,castle:'k'});
+    }
+  }
+  const rq = G.board[row][INIT.leftRookCol];
+  if(rq && rq.type==='r' && rq.color===color && !rq.moved){
+    let ok=true;
+    for(let c=INIT.leftRookCol+1;c<kc;c++){
+      if(G.board[row][c] || G.blocked.has(key(row,c))) ok=false;
+    }
+    if(ok && !isAttacked(row,kc-1,opp) && !isAttacked(row,kc-2,opp)){
+      res.push({from:{r:row,c:kc},to:{r:row,c:kc-2},capture:false,castle:'q'});
+    }
+  }
+  return res;
+}
+
+/* ============================ ВЫПОЛНЕНИЕ / ОТКАТ ============================ */
+function getPieceAt(r,c,b2){ return b2 ? G.board2[r][c] : G.board[r][c]; }
+function setPieceAt(r,c,b2,val){ if(b2) G.board2[r][c] = val; else G.board[r][c] = val; }
+
+function makeMove(m){
+  const fromB2 = !!m.fromBoard2;
+  const toB2 = !!m.toBoard2;
+  const p = getPieceAt(m.from.r, m.from.c, fromB2);
+  const captured = getPieceAt(m.to.r, m.to.c, toB2);
+  const u = {
+    m, captured, p,
+    epCap:null, epPos:null, rook:null,
+    movedFlag: p.moved, ep: G.enPassant
+  };
+  if(m.enPassant && !fromB2 && !toB2){
+    const cr = p.color==='w' ? m.to.r+1 : m.to.r-1;
+    u.epCap = G.board[cr][m.to.c];
+    u.epPos = {r:cr, c:m.to.c};
+    G.board[cr][m.to.c] = null;
+  }
+  setPieceAt(m.from.r, m.from.c, fromB2, null);
+  setPieceAt(m.to.r, m.to.c, toB2, p);
+  if(m.castle && !fromB2 && !toB2){
+    const row = m.from.r;
+    const rf = m.castle==='k' ? INIT.rightRookCol : INIT.leftRookCol;
+    const rt = m.castle==='k' ? INIT.kingCol+1 : INIT.kingCol-1;
+    const rp = G.board[row][rf];
+    u.rook = {row, rf, rt, rp, movedFlag: rp ? rp.moved : false};
+    G.board[row][rt] = rp;
+    G.board[row][rf] = null;
+    if(rp) rp.moved = true;
+  }
+  p.moved = true;
+  G.enPassant = (m.double && !fromB2 && !toB2) ? {r:(m.from.r+m.to.r)/2, c:m.from.c} : null;
+  return u;
+}
+
+function undoMove(u){
+  const m = u.m;
+  const p = u.p;
+  const fromB2 = !!m.fromBoard2;
+  const toB2 = !!m.toBoard2;
+  setPieceAt(m.to.r, m.to.c, toB2, null);
+  setPieceAt(m.from.r, m.from.c, fromB2, p);
+  if(u.captured) setPieceAt(m.to.r, m.to.c, toB2, u.captured);
+  if(u.epCap) G.board[u.epPos.r][u.epPos.c] = u.epCap;
+  if(u.rook){
+    G.board[u.rook.row][u.rook.rf] = u.rook.rp;
+    G.board[u.rook.row][u.rook.rt] = null;
+    if(u.rook.rp) u.rook.rp.moved = u.rook.movedFlag;
+  }
+  p.moved = u.movedFlag;
+  G.enPassant = u.ep;
+}
+
+/* ============================ ЛЕГАЛЬНЫЕ ХОДЫ ============================ */
+function legalMoves(color){
+  const res = [];
+  const immune = G.eff.kingImmune[color] > 0;
+  const opp = oppOf(color);
+  const noCap = G.eff.noCapture[color] > 0;
+
+  function sandboxCheck(m){
+    const u = makeMove(m);
+    const k = findKing(color);
+    const bad = k ? isAttackedBoard(k.r, k.c, opp, !!k.b2) : false;
+    undoMove(u);
+    return bad;
+  }
+
+  for(let r=G.minR;r<=G.maxR;r++){
+    for(let c=G.minC;c<=G.maxC;c++){
+      const p = G.board[r][c];
+      if(!p || p.color!==color) continue;
+      let ms = pieceMoves(r,c,p,false);
+      if(p.type==='k') ms = ms.concat(castlingMoves(color));
+      ms = ms.filter(m => {
+        const target = m.toBoard2 ? (G.board2[m.to.r]?.[m.to.c]) : G.board[m.to.r]?.[m.to.c];
+        if(target){
+          if(isInvulnerable(target)) return false;
+          if(isDragonImmuneTo(p.type, target.type)) return false;
+        }
+        return true;
+      });
+      for(const m of ms){
+        if(noCap && m.capture) continue;
+        if(!immune){
+          if(sandboxCheck(m)) continue;
+        }
+        res.push(m);
+      }
+    }
+  }
+  if(G.b2Active){
+    for(let r=G.b2.minR;r<=G.b2.maxR;r++){
+      for(let c=G.b2.minC;c<=G.b2.maxC;c++){
+        const p = G.board2[r][c];
+        if(!p || p.color!==color) continue;
+        let ms = pieceMoves2(r,c,p,false);
+        ms = ms.filter(m => {
+          const target = m.toBoard2 ? (G.board2[m.to.r]?.[m.to.c]) : G.board[m.to.r]?.[m.to.c];
+          if(target){
+            if(isInvulnerable(target)) return false;
+            if(isDragonImmuneTo(p.type, target.type)) return false;
+          }
+          return true;
+        });
+        for(const m of ms){
+          if(noCap && m.capture) continue;
+          if(!immune){
+            if(sandboxCheck(m)) continue;
+          }
+          res.push(m);
+        }
+      }
+    }
+  }
+  return res;
+}
+
+/* ============================ КАРТОЧКИ ============================ */
+function applyCard(color, id){
+  const opp = oppOf(color);
+  const who = color==='w' ? 'Белые' : 'Чёрные';
+  const card = CARDS.find(c=>c.id===id);
+  log(`${who}: ${card.icon} «${card.name}»`);
+
+  switch(id){
+    case 'bishopsKnights': G.eff.bishopsKnights = true; log('→ Слоны теперь ходят как кони.'); break;
+    case 'kingQueenSwap': {
+      const k = findPiece(color,'k'), q = findPiece(color,'q');
+      if(k && q){
+        const t = getPieceAt(k.r,k.c,k.b2);
+        setPieceAt(k.r,k.c,k.b2, getPieceAt(q.r,q.c,q.b2));
+        setPieceAt(q.r,q.c,q.b2, t);
+        log('→ Король и ферзь поменялись местами.');
+      } else log('→ Не сработало.');
+      break;
+    }
+    case 'pawnToRook': {
+      const list = allPieces(color).filter(x=>x.p.type==='p');
+      if(list.length){ const t = pick(list); t.p.type = 'r'; log(`→ Пешка на ${sqName(t.r,t.c)} стала ладьёй.`); }
+      else log('→ Нет пешек.');
+      break;
+    }
+    case 'kingImmune': G.eff.kingImmune[color] = 6; log('→ Король неуязвим 3 хода.'); break;
+    case 'noCapture': G.eff.noCapture[opp] = 2; log('→ Противник не может рубить 1 ход.'); break;
+    case 'knightsSwap': {
+      const wn = allPieces('w').filter(x=>x.p.type==='n').sort((a,b)=>a.r-b.r||a.c-b.c);
+      const bn = allPieces('b').filter(x=>x.p.type==='n').sort((a,b)=>a.r-b.r||a.c-b.c);
+      const n = Math.min(wn.length, bn.length);
+      for(let i=0;i<n;i++){ const t = G.board[wn[i].r][wn[i].c]; G.board[wn[i].r][wn[i].c] = G.board[bn[i].r][bn[i].c]; G.board[bn[i].r][bn[i].c] = t; }
+      log(n ? `→ Обменяно коней: ${n}.` : '→ Нет коней.');
+      break;
+    }
+    case 'enemyPawnColor': {
+      const list = allPieces(opp).filter(x=>x.p.type==='p');
+      if(list.length){
+        const t = pick(list);
+        t.p.color = color; t.p.moved = true; t.p.canCaptureForward = false;
+        if(color==='w' && t.r===G.minR) t.p.type='q';
+        if(color==='b' && t.r===G.maxR) t.p.type='q';
+        log(`→ Пешка на ${sqName(t.r,t.c)} перешла на вашу сторону.`);
+      } else log('→ Нет пешек противника.');
+      break;
+    }
+    case 'blockTwo': {
+      const cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)));
+      let n=0;
+      for(let i=0;i<2 && cells.length;i++){ const idx = Math.floor(Math.random()*cells.length); const t = cells.splice(idx,1)[0]; G.blocked.add(key(t.r,t.c)); n++; }
+      log(`→ Заблокировано полей: ${n}.`);
+      break;
+    }
+    case 'pawnForwardCapture': {
+      const list = allPieces(color).filter(x=>x.p.type==='p');
+      if(list.length){ const t = pick(list); t.p.canCaptureForward = true; log(`→ Пешка на ${sqName(t.r,t.c)} рубит вперёд.`); }
+      else log('→ Нет пешек.');
+      break;
+    }
+    case 'bishopsRooks': G.eff.bishopsRooks = 6; log('→ Слоны ходят как ладьи 3 хода.'); break;
+    case 'pawnVanish': {
+      const list = allPieces(opp).filter(x=>x.p.type==='p');
+      if(list.length){ const t = pick(list); G.board[t.r][t.c] = null; log(`→ Пешка на ${sqName(t.r,t.c)} исчезла.`); }
+      else log('→ Нет пешек противника.');
+      break;
+    }
+    case 'kingTwoStep': G.eff.kingTwoStep[color] = 3; log('→ Король ходит на две клетки два хода (кроме доски 2).'); break;
+    case 'expandBoard': if(G.minR>0) G.minR--; if(G.maxR<SIZE-1) G.maxR++; if(G.minC>0) G.minC--; if(G.maxC<SIZE-1) G.maxC++; log('→ Доска расширена.'); break;
+    case 'enemyBishopToPawn': {
+      const list = allPieces(opp).filter(x=>x.p.type==='b');
+      if(list.length){ const t = pick(list); t.p.type = 'p'; t.p.moved = true; t.p.canCaptureForward = false; log(`→ Слон на ${sqName(t.r,t.c)} стал пешкой.`); }
+      else log('→ Нет слонов противника.');
+      break;
+    }
+    case 'mine': {
+      const cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)));
+      if(cells.length){ const t = pick(cells); G.mines.add(key(t.r,t.c)); log(`→ Мина на ${sqName(t.r,t.c)}.`); }
+      else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'centerBlock': {
+      const mr = (G.minR+G.maxR)/2, mc = (G.minC+G.maxC)/2;
+      const cand = [ {r:Math.floor(mr),c:Math.floor(mc)}, {r:Math.floor(mr),c:Math.ceil(mc)}, {r:Math.ceil(mr), c:Math.floor(mc)}, {r:Math.ceil(mr), c:Math.ceil(mc)} ];
+      const uniq=[];
+      for(const x of cand) if(!uniq.some(y=>y.r===x.r&&y.c===x.c)) uniq.push(x);
+      if(uniq.every(x=>!G.board[x.r][x.c])){ uniq.forEach(x=>G.blocked.add(key(x.r,x.c))); log('→ Центральные клетки заблокированы.'); }
+      else log('→ В центре есть фигуры.');
+      break;
+    }
+    case 'newPawn': {
+      const mid = (G.minR+G.maxR)/2;
+      let cells = emptyCells().filter(x=> color==='w' ? x.r>mid : x.r<mid);
+      cells = cells.filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)) && !isGreenBlue(x.r,x.c));
+      if(cells.length){ const t = pick(cells); const np = mk(color,'p'); np.moved = true; G.board[t.r][t.c] = np; log(`→ Новая пешка на ${sqName(t.r,t.c)}.`); }
+      else log('→ Нет места.');
+      break;
+    }
+    case 'swapHalves': {
+      const mid = G.minR + G.maxR;
+      for(let r=G.minR; r<mid-r; r++){
+        const mr = mid - r;
+        for(let c=G.minC; c<=G.maxC; c++){ const t = G.board[r][c]; G.board[r][c] = G.board[mr][c]; G.board[mr][c] = t; }
+      }
+      log('→ Половинки поменялись местами.');
+      break;
+    }
+    case 'enemyKnightStatue': {
+      const list = allPieces(opp).filter(x=>x.p.type==='n' && x.p.statue<=0);
+      if(list.length){ const t = pick(list); t.p.statue = 6; log(`→ Конь на ${sqName(t.r,t.c)} окаменел.`); }
+      else log('→ Нет коней противника.');
+      break;
+    }
+    case 'blockLine': {
+      const lines=[];
+      for(let r=G.minR;r<=G.maxR;r++){ let free=true; for(let c=G.minC;c<=G.maxC;c++) if(G.board[r][c]) free=false; if(free) lines.push({type:'r', idx:r}); }
+      for(let c=G.minC;c<=G.maxC;c++){ let free=true; for(let r=G.minR;r<=G.maxR;r++) if(G.board[r][c]) free=false; if(free) lines.push({type:'c', idx:c}); }
+      if(lines.length){
+        const L = pick(lines);
+        if(L.type==='r'){ for(let c=G.minC;c<=G.maxC;c++) G.blocked.add(key(L.idx,c)); log('→ Горизонталь закрыта.'); }
+        else { for(let r=G.minR;r<=G.maxR;r++) G.blocked.add(key(r,L.idx)); log('→ Вертикаль закрыта.'); }
+      } else log('→ Нет свободных линий.');
+      break;
+    }
+    case 'flagMines': {
+      const cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)));
+      let n=0;
+      for(let i=0;i<5 && cells.length;i++){ const idx = Math.floor(Math.random()*cells.length); const t = cells.splice(idx,1)[0]; G.flags.add(key(t.r,t.c)); n++; }
+      log(`→ Флажков: ${n}.`);
+      break;
+    }
+    case 'knightsBackward': G.eff.knightsBackward = 8; log('→ Кони назад 4 хода.'); break;
+    case 'pawnsAnyDir': G.eff.pawnsAnyDir = 10; log('→ Пешки в любую сторону 5 ходов.'); break;
+    case 'opponentNoCards2': G.eff.cardLock[opp] = 4; log('→ Противник не может использовать карты 2 хода.'); break;
+    case 'pawnTempQueen': {
+      const list = allPieces(color).filter(x=>x.p.type==='p');
+      if(list.length){ const t = pick(list); t.p.tempQueen = 4; log(`→ Пешка на ${sqName(t.r,t.c)} — ферзь.`); }
+      else log('→ Нет пешек.');
+      break;
+    }
+    case 'knightsRooks': G.eff.knightsRooks = 6; log('→ Кони-ладьи 3 хода.'); break;
+    case 'enemyQueenAsPawn': G.eff.queenAsPawn[opp] = 4; log('→ Ферзь противника как пешка 2 хода.'); break;
+    case 'portal': {
+      const cells = emptyCells();
+      if(cells.length >= 2){
+        const shuffled = shuffle(cells);
+        G.portals = [shuffled[0], shuffled[1]];
+        log(`→ Портал: ${sqName(shuffled[0].r,shuffled[0].c)} ↔ ${sqName(shuffled[1].r,shuffled[1].c)}.`);
+      } else log('→ Недостаточно клеток.');
+      break;
+    }
+    case 'swapWithEnemy': {
+      const mine = allPieces(color); const enemies = allPieces(opp);
+      if(mine.length && enemies.length){
+        const a = pick(mine); const b = pick(enemies);
+        const t = G.board[a.r][a.c];
+        G.board[a.r][a.c] = G.board[b.r][b.c];
+        G.board[b.r][b.c] = t;
+        log(`→ Обмен: ${sqName(a.r,a.c)} ↔ ${sqName(b.r,b.c)}.`);
+      } else log('→ Мало фигур.');
+      break;
+    }
+    case 'shiftEnemyPiece': {
+      const enemies = allPieces(opp);
+      let done = false;
+      if(enemies.length){
+        const shuffledEnemies = shuffle(enemies);
+        for(const t of shuffledEnemies){
+          const dirs = shuffle(KING_D);
+          for(const [dr,dc] of dirs){
+            const tr = t.r + dr, tc = t.c + dc;
+            if(inB(tr,tc) && !isBlockedCell(tr,tc) && !G.board[tr][tc]){
+              G.board[tr][tc] = G.board[t.r][t.c];
+              G.board[t.r][t.c] = null;
+              log(`→ Сдвиг: ${sqName(t.r,t.c)} → ${sqName(tr,tc)}.`);
+              done = true;
+              break;
+            }
+          }
+          if(done) break;
+        }
+      }
+      if(!done) log('→ Не удалось сдвинуть.');
+      break;
+    }
+    case 'swapHands': { const temp = G.hands.w; G.hands.w = G.hands.b; G.hands.b = temp; log('→ Обмен картами.'); break; }
+    case 'shuffleAllPieces': {
+      const pieces = []; const positions = [];
+      for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+        if(G.board[r][c] && !G.blocked.has(key(r,c))){
+          pieces.push(G.board[r][c]);
+          positions.push({r,c});
+        }
+      }
+      if(pieces.length > 1){
+        const shuffled = shuffle(pieces);
+        for(let i=0;i<positions.length;i++){ G.board[positions[i].r][positions[i].c] = shuffled[i]; }
+        log('→ Все фигуры перемешаны.');
+      }
+      break;
+    }
+    case 'captureLosePawn': G.eff.captureLosePawn[color] = 1; log('→ При взятии противник потеряет пешку.'); break;
+    case 'copyPawn': {
+      const pawns = allPieces(color).filter(x=>x.p.type==='p');
+      let done = false;
+      if(pawns.length){
+        const shuffledPawns = shuffle(pawns);
+        for(const t of shuffledPawns){
+          const dirs = shuffle(KING_D);
+          for(const [dr,dc] of dirs){
+            const tr = t.r + dr, tc = t.c + dc;
+            if(inB(tr,tc) && !isBlockedCell(tr,tc) && !G.board[tr][tc] && !isGreenBlue(tr,tc)){
+              const np = mk(color, 'p'); np.moved = true;
+              G.board[tr][tc] = np;
+              log(`→ Копия пешки на ${sqName(tr,tc)}.`);
+              done = true;
+              break;
+            }
+          }
+          if(done) break;
+        }
+      }
+      if(!done) log('→ Нет места для копии.');
+      break;
+    }
+    case 'enemyPawnsBackward': G.eff.pawnsBackward[opp] = 10; log('→ Пешки противника назад 5 ходов.'); break;
+    case 'replaceEnemyCards': for(let i=0;i<G.hands[opp].length;i++){ G.hands[opp][i] = randomCardId(); } log('→ Карты противника обновлены.'); break;
+    case 'blockSix': {
+      const cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)));
+      let n = 0;
+      for(let i=0;i<6 && cells.length;i++){ const idx = Math.floor(Math.random()*cells.length); const t = cells.splice(idx,1)[0]; G.blocked.add(key(t.r,t.c)); n++; }
+      log(`→ Заблокировано: ${n}.`);
+      break;
+    }
+    case 'knightToQueen': {
+      const knights = allPieces(color).filter(x=>x.p.type==='n');
+      if(knights.length){ const t = pick(knights); t.p.type = 'q'; log(`→ Конь на ${sqName(t.r,t.c)} стал ферзём.`); }
+      else log('→ Нет коней.');
+      break;
+    }
+    case 'enemyQueenToPawn': {
+      const q = findPiece(opp, 'q');
+      if(q){ q.p.type = 'p'; q.p.moved = true; q.p.canCaptureForward = false; log(`→ Ферзь на ${sqName(q.r,q.c)} стал пешкой.`); }
+      else log('→ Нет ферзя противника.');
+      break;
+    }
+    case 'halfPiecesVanish': {
+      const pawns = allPieces(null).filter(x=>x.p.type === 'p');
+      if(pawns.length > 1){
+        const shuffled = shuffle(pawns);
+        const toRemove = Math.floor(shuffled.length / 2);
+        for(let i=0;i<toRemove;i++){ const t = shuffled[i]; G.board[t.r][t.c] = null; }
+        log(`→ Исчезло пешек: ${toRemove}.`);
+      } else log('→ Недостаточно пешек.');
+      break;
+    }
+    case 'threeKnightsEach': {
+      for(const col of ['w','b']){
+        for(let i=0;i<3;i++){
+          let cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)) && !G.cups.has(key(x.r,x.c)) && !isGreenBlue(x.r,x.c));
+          if(cells.length){ const t = pick(cells); const np = mk(col, 'n'); np.moved = true; G.board[t.r][t.c] = np; }
+        }
+      }
+      log('→ Каждый получил по три коня.');
+      break;
+    }
+    case 'pawnsTwoStep': G.eff.pawnsTwoStep = 10; log('→ Пешки на две клетки 5 ходов.'); break;
+    case 'greenDarkCells': {
+      const darkCells = [];
+      for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){ if((r+c)%2===1) darkCells.push({r,c}); }
+      const shuffled = shuffle(darkCells); const half = Math.floor(shuffled.length / 2);
+      for(let i=0;i<half;i++){ G.greenCells.add(key(shuffled[i].r, shuffled[i].c)); }
+      log(`→ Зелёных клеток: ${half}.`);
+      break;
+    }
+    case 'blueLightCells': {
+      const lightCells = [];
+      for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){ if((r+c)%2===0) lightCells.push({r,c}); }
+      const shuffled = shuffle(lightCells); const half = Math.floor(shuffled.length / 2);
+      for(let i=0;i<half;i++){ G.blueCells.add(key(shuffled[i].r, shuffled[i].c)); }
+      log(`→ Синих клеток: ${half}.`);
+      break;
+    }
+    case 'checkers': {
+      for(const col of ['w','b']){
+        let cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)) && !G.cups.has(key(x.r,x.c)) && !isGreenBlue(x.r,x.c));
+        if(cells.length){ const t = pick(cells); const np = mk(col, 'c'); np.moved = true; G.board[t.r][t.c] = np; }
+      }
+      log('→ Каждый получил по шашке.');
+      break;
+    }
+    case 'cornerRooks': {
+      const corners = [
+        {r:G.minR, c:G.minC, color:'b'}, {r:G.minR, c:G.maxC, color:'b'},
+        {r:G.maxR, c:G.minC, color:'w'}, {r:G.maxR, c:G.maxC, color:'w'}
+      ];
+      for(const corner of corners){
+        if(!G.board[corner.r][corner.c] && !isBlockedCell(corner.r, corner.c)){
+          const np = mk(corner.color, 'r'); np.moved = true; G.board[corner.r][corner.c] = np;
+        }
+      }
+      log('→ Углы получили ладей.');
+      break;
+    }
+    case 'redCellsBlock': {
+      const cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)) && !G.cups.has(key(x.r,x.c)));
+      const shuffled = shuffle(cells);
+      let n = 0;
+      for(let i=0;i<10 && i<shuffled.length;i++){ const t = shuffled[i]; G.redCells.set(key(t.r,t.c), 6); n++; }
+      log(`→ Красных клеток: ${n}.`);
+      break;
+    }
+    case 'clownHat': G.clownHat[opp] = true; log('→ Король противника в шляпе клоуна.'); break;
+    case 'cup': {
+      const cells = emptyCells().filter(x=>!G.mines.has(key(x.r,x.c)) && !G.flags.has(key(x.r,x.c)) && !G.cups.has(key(x.r,x.c)));
+      if(cells.length){ const t = pick(cells); G.cups.add(key(t.r,t.c)); log(`→ Кубок на ${sqName(t.r,t.c)}.`); }
+      else log('→ Нет свободных клеток.');
+      break;
+    }
+    case 'kingAsRook': G.eff.kingAsRook[color] = 2; log('→ Король-ладья на 1 ход (на доске 1).'); break;
+    case 'bishopsStatues': {
+      const bishops = allPieces(null).filter(x=>x.p.type==='b');
+      for(const b of bishops){ b.p.statue = -1; }
+      log('→ Все слоны окаменели.');
+      break;
+    }
+    case 'noCards5': G.eff.noCards = 10; log('→ Карты заблокированы 5 ходов.'); break;
+    case 'knightify': G.eff.knightify[color] = true; log('→ Пешки при взятии станут конями.'); break;
+    case 'whitePenalty': {
+      const pieces = allPieces('w').filter(x=>x.p.type !== 'k');
+      if(pieces.length){ const t = pick(pieces); G.board[t.r][t.c] = null; log(`→ Белые потеряли фигуру на ${sqName(t.r,t.c)}.`); }
+      else log('→ Белым некем платить.');
+      break;
+    }
+    case 'blackShot': {
+      const pieces = allPieces('b').filter(x=>x.p.type !== 'k');
+      if(pieces.length){ const t = pick(pieces); G.board[t.r][t.c] = null; log(`→ Выстрел уничтожил фигуру на ${sqName(t.r,t.c)}.`); }
+      else log('→ Нет цели.');
+      break;
+    }
+    case 'blitz': G.eff.blitz = 6; log('→ Блиц! 5 секунд на ход.'); break;
+    case 'freeze': {
+      const pieces = allPieces(opp).filter(x=>x.p.type !== 'k' && x.p.frozen <= 0);
+      if(pieces.length){ const t = pick(pieces); t.p.frozen = 4; log(`→ Фигура на ${sqName(t.r,t.c)} заморожена.`); }
+      else log('→ Нет цели для заморозки.');
+      break;
+    }
+    case 'flagCapture': {
+      const cells = emptyCells();
+      if(cells.length){ const t = pick(cells); G.greenFlags.add(key(t.r,t.c)); log(`→ Зелёный флаг на ${sqName(t.r,t.c)}.`); }
+      else log('→ Нет свободных клеток.');
+      break;
+    }
+    case 'noDraws': G.eff.noDraws = true; log('→ Пат — телепортация короля.'); break;
+    case 'mutant': {
+      const pawns = allPieces(color).filter(x=>x.p.type==='p');
+      if(pawns.length){ const t = pick(pawns); t.p.type = 'bowl'; log(`→ Пешка на ${sqName(t.r,t.c)} стала шаром.`); }
+      else log('→ Нет пешек.');
+      break;
+    }
+    case 'redCard': G.skipNext[opp] = true; log('→ Противник пропускает ход.'); break;
+    case 'noughts': {
+      const cells = emptyCells();
+      let n = 0;
+      for(let i=0;i<5 && cells.length;i++){
+        const idx = Math.floor(Math.random()*cells.length);
+        const t = cells.splice(idx,1)[0];
+        G.circles.add(key(t.r,t.c));
+        n++;
+      }
+      log(`→ Синих кружков: ${n}.`);
+      break;
+    }
+    case 'uno': {
+      const pieces = allPieces(null).filter(x=>x.p.type !== 'k');
+      if(pieces.length >= 3){
+        const chosen = shuffle(pieces).slice(0,3);
+        const positions = chosen.map(x=>({r:x.r,c:x.c}));
+        const shuffledPieces = shuffle(chosen.map(x=>x.p));
+        for(let i=0;i<3;i++){ G.board[positions[i].r][positions[i].c] = shuffledPieces[i]; }
+        log('→ Три фигуры перемешаны.');
+      } else log('→ Мало фигур.');
+      const letters = ['U','N','O'];
+      const cells = emptyCells();
+      let placed = 0;
+      for(let i=0;i<3 && cells.length;i++){
+        const idx = Math.floor(Math.random()*cells.length);
+        const t = cells.splice(idx,1)[0];
+        G.letters.set(key(t.r,t.c), letters[i]);
+        placed++;
+      }
+      log(`→ Размещено букв: ${placed}.`);
+      break;
+    }
+    case 'fire': {
+      const corners = [
+        {r:G.minR, c:G.minC}, {r:G.minR, c:G.maxC},
+        {r:G.maxR, c:G.minC}, {r:G.maxR, c:G.maxC}
+      ];
+      const corner = pick(corners);
+      G.fire.add(key(corner.r, corner.c));
+      G.fireTimer = 7;
+      log(`→ Огонь в углу ${sqName(corner.r, corner.c)}. Распространение раз в 7 ходов.`);
+      break;
+    }
+    case 'bioWeapon': G.eff.bioWeapon = 6; log('→ Биооружие: слоны и кони вымирают.'); break;
+    case 'dinosaur': {
+      const mid = (G.minR+G.maxR)/2;
+      let cells = emptyCells().filter(x=> color==='w' ? x.r>mid : x.r<mid);
+      cells = cells.filter(x=>!isGreenBlue(x.r,x.c) && !G.fire.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        const np = mk(color, 'dino');
+        np.moved = true;
+        G.board[t.r][t.c] = np;
+        log(`→ Динозавр на ${sqName(t.r,t.c)}.`);
+      } else log('→ Нет места для динозавра.');
+      break;
+    }
+    case 'fourthDim': {
+      if(G.b2Active){ log('→ Четвёртое Измерение уже открыто.'); break; }
+      G.b2Active = true;
+      G.b2 = {minR: 0, maxR: 3, minC: 0, maxC: 3};
+      G.board2 = Array.from({length:4}, ()=>Array(4).fill(null));
+      G.b2Links = [];
+      const mainCandidates = shuffle(emptyCells());
+      const secondCorners = [
+        {r:0, c:0}, {r:0, c:3}, {r:3, c:0}, {r:3, c:3}
+      ];
+      const picks = mainCandidates.slice(0, Math.min(4, mainCandidates.length));
+      for(let i=0;i<picks.length;i++){
+        G.b2Links.push({main: picks[i], second: secondCorners[i]});
+      }
+      log(`→ Открыто Четвёртое Измерение! Король на доске 2 ходит только на 1 клетку.`);
+      break;
+    }
+    case 'worms': {
+      const cells = emptyCells().filter(x=>!G.suits.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.suits.set(key(t.r,t.c), 'hearts');
+        log(`→ Поле-черви на ${sqName(t.r,t.c)}. Бонус даётся на 5 ходов.`);
+      } else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'diamonds': {
+      const cells = emptyCells().filter(x=>!G.suits.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.suits.set(key(t.r,t.c), 'diamonds');
+        log(`→ Поле-бубна на ${sqName(t.r,t.c)}. Бонус даётся на 5 ходов.`);
+      } else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'clubs': {
+      const cells = emptyCells().filter(x=>!G.suits.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.suits.set(key(t.r,t.c), 'clubs');
+        for(let dr=-1; dr<=1; dr++){
+          for(let dc=-1; dc<=1; dc++){
+            const tr=t.r+dr, tc=t.c+dc;
+            if(inB(tr,tc)) G.clubsZones.add(key(tr,tc));
+          }
+        }
+        log(`→ Поле-трефы на ${sqName(t.r,t.c)}. Клетки вокруг — запретны для королей, пешек и коней.`);
+      } else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'spades': {
+      const cells = emptyCells().filter(x=>!G.suits.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.suits.set(key(t.r,t.c), 'spades');
+        log(`→ Поле-пики на ${sqName(t.r,t.c)}. Бонус даётся на 5 ходов.`);
+      } else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'bishopify': {
+      let count = 0;
+      for(const col of ['w','b']){
+        for(const x of allPieces(col)){
+          if(x.p.type === 'p'){ x.p.type = 'b'; count++; }
+        }
+      }
+      log(`→ Пешек превращено в слонов: ${count}.`);
+      break;
+    }
+    case 'sun': {
+      const cells = emptyCells().filter(x=>!G.sunCells.has(key(x.r,x.c)) && !G.moonCells.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.sunCells.set(key(t.r,t.c), 10);
+        log(`→ Солнце на ${sqName(t.r,t.c)}. Чёрные фигуры не могут наступать. Исчезнет через 5 ходов.`);
+      } else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'moon': {
+      const cells = emptyCells().filter(x=>!G.sunCells.has(key(x.r,x.c)) && !G.moonCells.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.moonCells.set(key(t.r,t.c), 10);
+        log(`→ Луна на ${sqName(t.r,t.c)}. Белые фигуры не могут наступать. Исчезнет через 5 ходов.`);
+      } else log('→ Нет свободных полей.');
+      break;
+    }
+    case 'mobilization': {
+      const k = findKing(color);
+      if(k && !k.b2){
+        let placed = 0;
+        for(const [dr,dc] of KING_D){
+          if(placed >= 2) break;
+          const tr = k.r + dr, tc = k.c + dc;
+          if(inB(tr,tc) && !G.board[tr][tc] && !isBlockedCell(tr,tc) && !isGreenBlue(tr,tc)){
+            const np = mk(color, 'p'); np.moved = true;
+            G.board[tr][tc] = np;
+            placed++;
+          }
+        }
+        log(`→ Мобилизация: ${placed} пешек появилось рядом с королём.`);
+      } else log('→ Король не найден для мобилизации.');
+      break;
+    }
+    case 'liberation': {
+      const removeFns = [];
+      for(const k of [...G.blocked]) removeFns.push(() => G.blocked.delete(k));
+      for(const k of [...G.greenCells]) removeFns.push(() => G.greenCells.delete(k));
+      for(const k of [...G.blueCells]) removeFns.push(() => G.blueCells.delete(k));
+      for(const k of [...G.redCells.keys()]) removeFns.push(() => G.redCells.delete(k));
+      for(const k of [...G.circles]) removeFns.push(() => G.circles.delete(k));
+      for(const k of [...G.fire]) removeFns.push(() => G.fire.delete(k));
+      for(const k of [...G.sunCells.keys()]) removeFns.push(() => G.sunCells.delete(k));
+      for(const k of [...G.moonCells.keys()]) removeFns.push(() => G.moonCells.delete(k));
+      for(const k of [...G.suits.keys()]) removeFns.push(() => G.suits.delete(k));
+      for(const k of [...G.clubsZones]) removeFns.push(() => G.clubsZones.delete(k));
+      for(const k of [...G.houses]) removeFns.push(() => G.houses.delete(k));
+      const shuffled = shuffle(removeFns);
+      const half = Math.floor(shuffled.length / 2);
+      for(let i=0;i<half;i++) shuffled[i]();
+      log(`→ Освобождено полей: ${half}.`);
+      break;
+    }
+    case 'monolith': {
+      const queens = allPieces(null).filter(x=>x.p.type === 'q');
+      if(queens.length){
+        const t = pick(queens);
+        t.p.type = 'monolith';
+        log(`→ Ферзь на ${sqName(t.r,t.c)} стал монолитом.`);
+      } else log('→ Нет ферзей для монолита.');
+      break;
+    }
+    case 'dragon': {
+      const queens = allPieces(null).filter(x=>x.p.type === 'q');
+      if(queens.length){
+        const t = pick(queens);
+        t.p.type = 'dragon';
+        log(`→ Ферзь на ${sqName(t.r,t.c)} стал драконом.`);
+      } else log('→ Нет ферзей для дракона.');
+      break;
+    }
+    case 'pacman': {
+      const ghostB = mk('b', 'ghost'); ghostB.ghostTurns = 6;
+      const ghostW = mk('w', 'ghost'); ghostW.ghostTurns = 6;
+      const cells = emptyCells();
+      if(cells.length >= 2){
+        const shuffled = shuffle(cells);
+        G.board[shuffled[0].r][shuffled[0].c] = ghostB;
+        G.board[shuffled[1].r][shuffled[1].c] = ghostW;
+        log('→ Пакман: чёрный получил синего призрака, белый — жёлтого.');
+      } else log('→ Недостаточно свободных клеток для призраков.');
+      break;
+    }
+    case 'demons': {
+      const cells = emptyCells();
+      let placed = 0;
+      for(let i=0;i<2 && cells.length;i++){
+        const idx = Math.floor(Math.random()*cells.length);
+        const t = cells.splice(idx,1)[0];
+        const np = mk('n', 'demon');
+        G.board[t.r][t.c] = np;
+        placed++;
+      }
+      log(`→ Демонов появилось: ${placed}.`);
+      break;
+    }
+    case 'monopoly': {
+      const cells = emptyCells();
+      if(cells.length){
+        const t = pick(cells);
+        G.houses.add(key(t.r,t.c));
+        log(`→ Домик на ${sqName(t.r,t.c)}. Слон, встав на него, станет ладьёй.`);
+      } else log('→ Нет свободных клеток для домика.');
+      break;
+    }
+    case 'territoryExpand': {
+      if(!G.b2Active){ log('→ Четвёртое Измерение не открыто — нечего расширять.'); break; }
+      const oldPieces = [];
+      for(let r=G.b2.minR;r<=G.b2.maxR;r++) for(let c=G.b2.minC;c<=G.b2.maxC;c++){
+        if(G.board2[r][c]) oldPieces.push(G.board2[r][c]);
+      }
+      G.b2 = {minR:0, maxR:7, minC:0, maxC:7};
+      G.board2 = Array.from({length:8}, ()=>Array(8).fill(null));
+      const positions = [];
+      for(let r=0;r<8;r++) for(let c=0;c<8;c++) positions.push({r,c});
+      for(let i=0;i<oldPieces.length && i<positions.length;i++){
+        G.board2[positions[i].r][positions[i].c] = oldPieces[i];
+      }
+      const corners = [{r:0,c:0},{r:0,c:7},{r:7,c:0},{r:7,c:7}];
+      const mainCandidates = shuffle(emptyCells());
+      const picks = mainCandidates.slice(0, Math.min(4, mainCandidates.length));
+      G.b2Links = [];
+      for(let i=0;i<picks.length;i++){
+        G.b2Links.push({main: picks[i], second: corners[i]});
+      }
+      log('→ Четвёртое Измерение расширено до 8×8!');
+      break;
+    }
+    case 'infiniteVoid': {
+      G.minR = INIT.minR; G.maxR = INIT.maxR;
+      G.minC = INIT.minC; G.maxC = INIT.maxC;
+      const pieces = [];
+      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+        if(G.board[r][c]){ pieces.push(G.board[r][c]); G.board[r][c] = null; }
+      }
+      G.blocked.clear(); G.fire.clear(); G.mines.clear(); G.flags.clear();
+      G.cups.clear(); G.greenFlags.clear(); G.letters.clear(); G.circles.clear();
+      G.greenCells.clear(); G.blueCells.clear(); G.redCells.clear(); G.suits.clear();
+      G.clubsZones.clear(); G.sunCells.clear(); G.moonCells.clear(); G.houses.clear();
+      G.portals = []; G.endgameCells.clear(); G.barracks.clear();
+      G.wifiCells.clear(); G.goldCells.clear(); G.dynamiteMap.clear(); G.algebraMap.clear();
+      const mid = (G.minR + G.maxR) / 2;
+      const whiteCells = [], blackCells = [];
+      for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+        if(r > mid) whiteCells.push({r,c}); else blackCells.push({r,c});
+      }
+      const shW = shuffle(whiteCells), shB = shuffle(blackCells);
+      let wi = 0, bi = 0;
+      for(const p of pieces){
+        if(p.color === 'w' && wi < shW.length){ G.board[shW[wi].r][shW[wi].c] = p; wi++; }
+        else if(p.color === 'b' && bi < shB.length){ G.board[shB[bi].r][shB[bi].c] = p; bi++; }
+      }
+      log('→ Бесконечная пустота: доска сброшена, фигуры случайно расставлены на своих половинах.');
+      break;
+    }
+    case 'evilTomb': {
+      for(const col of ['w','b']){
+        const k = findKing(col);
+        if(!k || k.b2) continue;
+        let placed = 0;
+        for(const [dr,dc] of KING_D){
+          if(placed >= 2) break;
+          const tr = k.r + dr, tc = k.c + dc;
+          if(inB(tr,tc) && !G.board[tr][tc] && !isBlockedCell(tr,tc)){
+            const np = mk(col, 'r'); np.moved = true;
+            G.board[tr][tc] = np; placed++;
+          }
+        }
+      }
+      log('→ Гробница Зла: вокруг королей появились ладьи.');
+      break;
+    }
+    case 'origins': {
+      for(const col of ['w','b']){
+        const k = findKing(col);
+        if(!k || k.b2) continue;
+        let placed = 0;
+        for(const [dr,dc] of KING_D){
+          if(placed >= 2) break;
+          const tr = k.r + dr, tc = k.c + dc;
+          if(inB(tr,tc) && !G.board[tr][tc] && !isBlockedCell(tr,tc)){
+            const np = mk(col, 'c'); np.moved = true;
+            G.board[tr][tc] = np; placed++;
+          }
+        }
+      }
+      log('→ Истоки: у королей появились шашки.');
+      break;
+    }
+    case 'barracks': {
+      const cells = emptyCells();
+      if(cells.length){
+        const t = pick(cells);
+        G.barracks.add(key(t.r,t.c));
+        log(`→ Казарма появилась на ${sqName(t.r,t.c)}.`);
+      } else log('→ Нет места для казармы.');
+      break;
+    }
+    case 'evolution': {
+      G.eff.evolution = true;
+      log('→ Эволюция: все пешки могут ходить наискосок в любую сторону.');
+      break;
+    }
+    case 'respect': {
+      const oppK = findKing(opp);
+      if(!oppK){ log('→ Король противника не найден.'); break; }
+      let n = 0;
+      for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+        if(Math.max(Math.abs(r - oppK.r), Math.abs(c - oppK.c)) <= 3){
+          const k = key(r,c);
+          let ch = false;
+          if(G.blocked.delete(k)) ch = true;
+          if(G.fire.delete(k)) ch = true;
+          if(G.mines.delete(k)) ch = true;
+          if(G.flags.delete(k)) ch = true;
+          if(G.cups.delete(k)) ch = true;
+          if(G.greenFlags.delete(k)) ch = true;
+          if(G.letters.delete(k)) ch = true;
+          if(G.circles.delete(k)) ch = true;
+          if(G.greenCells.delete(k)) ch = true;
+          if(G.blueCells.delete(k)) ch = true;
+          if(G.redCells.delete(k)) ch = true;
+          if(G.suits.delete(k)) ch = true;
+          if(G.clubsZones.delete(k)) ch = true;
+          if(G.sunCells.delete(k)) ch = true;
+          if(G.moonCells.delete(k)) ch = true;
+          if(G.houses.delete(k)) ch = true;
+          if(ch) n++;
+        }
+      }
+      log(`→ Респект: очищено ${n} клеток вокруг короля противника.`);
+      break;
+    }
+    case 'unbounded': {
+      G.eff.unbounded = true;
+      G.eff.unboundedDelay = 10;
+      log('→ Безграничность! Первые 5 ходов работает только для ладьи, дракона, призрака, динозавра, шара и шашки.');
+      break;
+    }
+    case 'dnd': {
+      G.eff.dnd = 10;
+      log('→ D&D: 10 ходов при взятии бросается d20 (провал <10, атакующий исчезает).');
+      break;
+    }
+    case 'stalemateReality': {
+      G.eff.stalemateReality = true;
+      log('→ Тупиковая реальность активирована. При <6 фигур начнётся финал.');
+      break;
+    }
+
+    /* ===== НОВЫЕ ===== */
+    case 'horseHead': {
+      G.eff.horseHead = true;
+      log('→ Все кони теперь ходят как слоны (навсегда).');
+      break;
+    }
+    case 'monarch': {
+      const bishops = allPieces(null).filter(x=>x.p.type === 'b' && !x.p.isMonarch && !x.p.isEye);
+      if(bishops.length){
+        const t = pick(bishops);
+        t.p.isMonarch = true;
+        log(`→ Слон на ${sqName(t.r,t.c)} стал фиолетовым монархом.`);
+      } else log('→ Нет слона для монарха.');
+      break;
+    }
+    case 'dynamite': {
+      const cells = emptyCells().filter(x=>!G.dynamiteMap.has(key(x.r,x.c)) && !G.meteorCells.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.dynamiteMap.set(key(t.r,t.c), 6);
+        log(`→ Динамит заложен на ${sqName(t.r,t.c)}. Взорвётся через 3 хода.`);
+      } else log('→ Нет места для динамита.');
+      break;
+    }
+    case 'wifi': {
+      const cells = emptyCells().filter(x=>!G.wifiCells.has(key(x.r,x.c)) && !G.suits.has(key(x.r,x.c)));
+      if(cells.length){
+        const t = pick(cells);
+        G.wifiCells.add(key(t.r,t.c));
+        log(`→ Клетка Wi-Fi на ${sqName(t.r,t.c)}. Фигура ходит в радиусе 3, но не рубит.`);
+      } else log('→ Нет места для вайфая.');
+      break;
+    }
+    case 'meteorites': {
+      const cells = emptyCells();
+      let n = 0;
+      const shuffled = shuffle(cells);
+      for(let i=0;i<3 && i<shuffled.length;i++){
+        const t = shuffled[i];
+        G.meteorCells.add(key(t.r,t.c));
+        n++;
+      }
+      let dinos = 0;
+      for(const d of allPieces(null)){
+        if(d.p.type === 'dino'){ setPieceAt(d.r,d.c,d.b2,null); dinos++; }
+      }
+      log(`→ Метеориты: ${n} клеток. Погибло динозавров: ${dinos}.`);
+      break;
+    }
+    case 'northCentral': {
+      const mr = Math.floor((G.minR + G.maxR) / 2);
+      const mc = Math.floor((G.minC + G.maxC) / 2);
+      const cells = [
+        {r:mr,c:mc},{r:mr,c:mc+1},{r:mr+1,c:mc},{r:mr+1,c:mc+1}
+      ];
+      const suits = ['hearts','diamonds','clubs','spades'];
+      let n = 0;
+      for(let i=0;i<cells.length;i++){
+        const t = cells[i];
+        if(!inB(t.r,t.c)) continue;
+        if(G.suits.has(key(t.r,t.c))) continue;
+        G.suits.set(key(t.r,t.c), suits[i % suits.length]);
+        n++;
+      }
+      log(`→ Северный централ: ${n} центральных клеток получили бонусы мастей.`);
+      break;
+    }
+    case 'angel': {
+      const rooks = allPieces(null).filter(x=>x.p.type === 'r' && !x.p.isAngel);
+      if(rooks.length){
+        const t = pick(rooks);
+        t.p.isAngel = true;
+        log(`→ Ладья на ${sqName(t.r,t.c)} стала Ангелом.`);
+      } else log('→ Нет ладьи для ангела.');
+      break;
+    }
+    case 'cheats': {
+      for(const col of ['w','b']){
+        while(G.hands[col].length < 4){
+          G.hands[col].push(randomCardId());
+        }
+      }
+      log('→ Читы! У всех по четыре карты.');
+      break;
+    }
+    case 'illuminati': {
+      const bishops = allPieces(null).filter(x=>x.p.type === 'b' && !x.p.isEye && !x.p.isMonarch);
+      if(bishops.length){
+        const t = pick(bishops);
+        t.p.isEye = true;
+        log(`→ Слон на ${sqName(t.r,t.c)} стал глазом Иллюмината.`);
+      } else log('→ Нет слона для иллюмината.');
+      break;
+    }
+    case 'anchor': {
+      const pieces = allPieces(opp).filter(x=>x.p.type !== 'k' && x.p.anchorTurns <= 0 && x.p.statue <= 0);
+      if(pieces.length){
+        const t = pick(pieces);
+        t.p.anchorTurns = 6;
+        log(`→ Фигура противника на ${sqName(t.r,t.c)} заякорена на 3 хода.`);
+      } else log('→ Нет цели для якоря.');
+      break;
+    }
+    case 'superiority': {
+      const cells = emptyCells().filter(x=>!G.goldCells.has(key(x.r,x.c)));
+      const shuffled = shuffle(cells);
+      let n = 0;
+      for(let i=0;i<5 && i<shuffled.length;i++){
+        const t = shuffled[i];
+        G.goldCells.add(key(t.r,t.c));
+        n++;
+      }
+      log(`→ Превосходство: ${n} жёлтых клеток.`);
+      break;
+    }
+    case 'algebra': {
+      const cells = emptyCells().filter(x=>!G.algebraMap.has(key(x.r,x.c)));
+      const shuffled = shuffle(cells);
+      G.algebraMap.clear();
+      G.algebraCollected = {w:0, b:0};
+      for(let i=0;i<3 && i<shuffled.length;i++){
+        const t = shuffled[i];
+        G.algebraMap.set(key(t.r,t.c), i + 1);
+      }
+      log('→ Алгебра: три клетки с цифрами 1, 2, 3. Король должен собрать их по порядку.');
+      break;
+    }
+  }
+
+  ensureKings();
+}
+
+function randomCardId(){ return pick(CARDS).id; }
+
+/* ============================ ХОД ИГРЫ ============================ */
+function startTurn(color){
+  G.canUseCard[color] = !G.pendingBlock[color] && G.eff.cardLock[color] <= 0 && G.eff.noCards <= 0;
+  G.pendingBlock[color] = false;
+  G.cardUsedThisTurn[color] = false;
+}
+
+function beginTurn(){
+  if(G.blitzTimer){ clearTimeout(G.blitzTimer); G.blitzTimer = null; }
+  startTurn(G.turn);
+  if(G.eff.blitz > 0){
+    const c = G.turn;
+    G.blitzTimer = setTimeout(() => {
+      if(G.turn === c && !G.over){
+        log('⏰ Время вышло! Ход пропущен.');
+        endTurn();
+      }
+    }, 5000);
+  }
+}
+
+function tickEffects(){
+  const e = G.eff;
+  if(e.bishopsRooks>0) e.bishopsRooks--;
+  if(e.knightsBackward>0) e.knightsBackward--;
+  if(e.pawnsAnyDir>0) e.pawnsAnyDir--;
+  if(e.pawnsInvisible>0) e.pawnsInvisible--;
+  if(e.knightsRooks>0) e.knightsRooks--;
+  if(e.pawnsTwoStep>0) e.pawnsTwoStep--;
+  if(e.noCards>0) e.noCards--;
+  if(e.blitz>0) e.blitz--;
+  if(e.dnd>0) e.dnd--;
+  if(e.unboundedDelay>0) e.unboundedDelay--;
+  if(e.bioWeapon>0){
+    e.bioWeapon--;
+    const targets = allPieces(null, true).filter(x=>x.p.type==='b' || x.p.type==='n');
+    if(targets.length){
+      const t = pick(targets);
+      setPieceAt(t.r, t.c, t.b2, null);
+      log(`☣ Биооружие уничтожило фигуру на ${sqName(t.r,t.c,t.b2)}.`);
+    } else { e.bioWeapon = 0; }
+  }
+
+  for(const col of ['w','b']){
+    if(e.kingImmune[col]>0) e.kingImmune[col]--;
+    if(e.noCapture[col]>0) e.noCapture[col]--;
+    if(e.kingTwoStep[col]>0) e.kingTwoStep[col]--;
+    if(e.cardLock[col]>0) e.cardLock[col]--;
+    if(e.queenAsPawn[col]>0) e.queenAsPawn[col]--;
+    if(e.pawnsBackward[col]>0) e.pawnsBackward[col]--;
+    if(e.kingAsRook[col]>0) e.kingAsRook[col]--;
+  }
+
+  const toRemove = [];
+  const processPiece = (r,c,p,b2) => {
+    if(!p) return;
+    if(p.statue>0) p.statue--;
+    if(p.tempQueen>0) p.tempQueen--;
+    if(p.frozen>0) p.frozen--;
+    if(p.anchorTurns>0) p.anchorTurns--;
+    if(p.suitKnightTurns>0) p.suitKnightTurns--;
+    if(p.suitRookTurns>0) p.suitRookTurns--;
+    if(p.tempBishopTurns>0){
+      p.tempBishopTurns--;
+      if(p.tempBishopTurns === 0 && p.originalType){
+        p.type = p.originalType;
+        p.originalType = null;
+        log(`♦ Бонус бубны закончился: фигура на ${sqName(r,c,b2)} вернула тип.`);
+      }
+    }
+    if(p.ghostTurns>0){
+      p.ghostTurns--;
+      if(p.ghostTurns === 0){
+        toRemove.push({r,c,b2});
+        log(`👻 Призрак исчез на ${sqName(r,c,b2)}.`);
+      }
+    }
+  };
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++) processPiece(r,c,G.board[r][c],false);
+  if(G.b2Active) for(let r=G.b2.minR;r<=G.b2.maxR;r++) for(let c=G.b2.minC;c<=G.b2.maxC;c++) processPiece(r,c,G.board2[r][c],true);
+  for(const rm of toRemove) setPieceAt(rm.r, rm.c, rm.b2, null);
+
+  /* Динамит */
+  for(const [k, turns] of [...G.dynamiteMap]){
+    if(turns <= 1){
+      G.dynamiteMap.delete(k);
+      const [rr,cc] = k.split(',').map(Number);
+      // взрыв в радиусе 1
+      for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){
+        const tr=rr+dr, tc=cc+dc;
+        if(!inB(tr,tc)) continue;
+        const p = G.board[tr][tc];
+        if(p && p.type !== 'k'){
+          G.board[tr][tc] = null;
+          log(`🧨 Динамит уничтожил фигуру на ${sqName(tr,tc)}.`);
+        } else if(p && p.type === 'k'){
+          log(`🧨 Динамит: король на ${sqName(tr,tc)} невредим.`);
+        }
+      }
+      // очистим динамитную клетку от других маркеров не нужно, клетка просто возвращается в норму
+    } else {
+      G.dynamiteMap.set(k, turns - 1);
+    }
+  }
+
+  /* Метеориты — просто визуальные клетки, эффект уже применён */
+  /* нет таймера */
+
+  /* Солнце / Луна */
+  for(const [k, turns] of [...G.sunCells]){
+    if(turns <= 1){ G.sunCells.delete(k); log(`☀ Солнце погасло.`); }
+    else G.sunCells.set(k, turns-1);
+  }
+  for(const [k, turns] of [...G.moonCells]){
+    if(turns <= 1){ G.moonCells.delete(k); log(`🌙 Луна погасла.`); }
+    else G.moonCells.set(k, turns-1);
+  }
+
+  const redUpdates = [];
+  for(const [k, turns] of G.redCells){
+    redUpdates.push({k, turns: turns-1});
+  }
+  for(const {k, turns} of redUpdates){
+    if(turns <= 0){ G.blocked.add(k); G.redCells.delete(k); }
+    else { G.redCells.set(k, turns); }
+  }
+
+  if(G.fire.size > 0){
+    G.fireTimer--;
+    if(G.fireTimer <= 0){
+      G.fireTimer = 7;
+      const newFire = new Set(G.fire);
+      for(const k of G.fire){
+        const parts = k.split(',');
+        const r = parseInt(parts[0],10), c = parseInt(parts[1],10);
+        for(const [dr,dc] of ROOK_D){
+          const tr=r+dr, tc=c+dc;
+          if(inB(tr,tc)) newFire.add(key(tr,tc));
+        }
+      }
+      let destroyed = 0;
+      for(const k of newFire){
+        if(!G.fire.has(k)){
+          const parts = k.split(',');
+          const r = parseInt(parts[0],10), c = parseInt(parts[1],10);
+          const p = G.board[r][c];
+          if(p){ G.board[r][c] = null; destroyed++; log(`🔥 Огонь уничтожил фигуру.`); }
+        }
+      }
+      G.fire = newFire;
+      if(destroyed === 0) log('🔥 Огонь распространился.');
+    }
+  }
+
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    const p = G.board[r][c];
+    if(p && p.type === 'monolith'){
+      for(const [dr,dc] of KING_D){
+        const tr=r+dr, tc=c+dc;
+        if(!inB(tr,tc)) continue;
+        const q = G.board[tr][tc];
+        if(q && q.type === 'n'){ q.type = 'dino'; log(`🗿 Монолит превратил коня в динозавра.`); }
+      }
+    }
+  }
+
+  const demons = [];
+  for(let r=G.minR;r<=G.maxR;r++) for(let c=G.minC;c<=G.maxC;c++){
+    const p = G.board[r][c];
+    if(p && p.type === 'demon') demons.push({r,c});
+  }
+  for(const d of demons){
+    const dirs = shuffle(KING_D);
+    for(const [dr,dc] of dirs){
+      const tr = d.r + dr, tc = d.c + dc;
+      if(!inB(tr,tc) || G.board[tr][tc] || isBlockedCell(tr,tc)) continue;
+      G.board[tr][tc] = G.board[d.r][d.c];
+      G.board[d.r][d.c] = null;
+      d.r = tr; d.c = tc;
+      break;
+    }
+    for(const [dr,dc] of KING_D){
+      const tr = d.r + dr, tc = d.c + dc;
+      if(!inB(tr,tc)) continue;
+      const q = G.board[tr][tc];
+      if(q && (q.color === 'w' || q.color === 'b') && q.type !== 'k' && q.type !== 'ghost'){
+        G.board[tr][tc] = null;
+        log(`👹 Демон съел фигуру на ${sqName(tr,tc)}.`);
+      }
+    }
+  }
+
+  for(const bKey of [...G.barracks]){
+    const parts = bKey.split(',');
+    const br = parseInt(parts[0],10), bc = parseInt(parts[1],10);
+    let wC = 0, bC = 0;
+    for(const [dr,dc] of KING_D){
+      const tr = br + dr, tc = bc + dc;
+      if(!inB(tr,tc)) continue;
+      const p = G.board[tr][tc];
+      if(p && p.color === 'w') wC++;
+      else if(p && p.color === 'b') bC++;
+    }
+    if(wC + bC === 1){
+      const col = wC === 1 ? 'w' : 'b';
+      for(const [dr,dc] of KING_D){
+        const tr = br + dr, tc = bc + dc;
+        if(inB(tr,tc) && !G.board[tr][tc] && !isBlockedCell(tr,tc)){
+          const np = mk(col, 'p'); np.moved = true;
+          G.board[tr][tc] = np;
+          log(`🏛 Казарма создала пешку ${col==='w'?'белых':'чёрных'}.`);
+          break;
+        }
+      }
+    }
+  }
+
+  if(G.eff.stalemateReality && !G.endgameActive){
+    const total = allPieces(null).filter(x=>x.p.color === 'w' || x.p.color === 'b').length;
+    if(total < 6){
+      G.endgameActive = true;
+      log('⚠️ ТУПИКОВАЯ РЕАЛЬНОСТЬ! Игроки получают по 2 слона и 2 шашки.');
+      for(const col of ['w','b']){
+        const k = findKing(col);
+        let placed = 0;
+        if(k && !k.b2){
+          for(const [dr,dc] of KING_D){
+            if(placed >= 4) break;
+            const tr = k.r + dr, tc = k.c + dc;
+            if(inB(tr,tc) && !G.board[tr][tc] && !isBlockedCell(tr,tc)){
+              const type = placed < 2 ? 'b' : 'c';
+              const np = mk(col, type); np.moved = true;
+              G.board[tr][tc] = np; placed++;
+            }
+          }
+        }
+      }
+      const midR = Math.floor((G.minR + G.maxR) / 2);
+      const midC = Math.floor((G.minC + G.maxC) / 2);
+      G.endgameCells.clear();
+      G.endgameCells.add(key(midR, midC));
+      G.endgameCells.add(key(midR, midC + 1));
+      G.endgameCells.add(key(midR + 1, midC));
+      G.endgameCells.add(key(midR + 1, midC + 1));
+    }
+  }
+}
+
+function evaluate(){
+  ensureKings();
+
+  if(G.endgameActive && !G.over){
+    for(const col of ['w','b']){
+      let cnt = 0;
+      for(const k of G.endgameCells){
+        const [r,c] = k.split(',').map(Number);
+        const p = G.board[r] ? G.board[r][c] : null;
+        if(p && p.color === col) cnt++;
+      }
+      if(G.endgameCells.size > 0 && cnt === G.endgameCells.size){
+        G.over = true;
+        G.msg = `⚡ Тупиковая Реальность завершена! Побеждают ${col === 'w' ? 'белые' : 'чёрные'}!`;
+        return;
+      }
+    }
+  }
+
+  const moves = legalMoves(G.turn);
+  if(moves.length===0){
+    const k = findKing(G.turn);
+    if(!k){ ensureKings(); return; }
+    const inCheck = G.eff.kingImmune[G.turn]<=0 && isAttackedBoard(k.r,k.c,oppOf(G.turn), !!k.b2);
+    if(!inCheck && G.eff.noDraws){
+      const cells = trulyFreeCells();
+      if(cells.length){
+        setPieceAt(k.r,k.c,k.b2, null);
+        const t = pick(cells);
+        const np = mk(G.turn, 'k'); np.moved = true;
+        G.board[t.r][t.c] = np;
+        log(`♻️ Пат! Король телепортирован.`);
+        return;
+      }
+    }
+    G.over = true;
+    G.msg = inCheck
+      ? (G.turn==='w' ? 'Мат! Побеждают чёрные.' : 'Мат! Побеждают белые.')
+      : 'Пат. Ничья.';
+  }
+}
+
+function endTurn(){
+  if(G.blitzTimer){ clearTimeout(G.blitzTimer); G.blitzTimer = null; }
+  tickEffects();
+  ensureKings();
+
+  const c = G.turn;
+  if(G.drawCounter[c] > 0){
+    G.drawCounter[c]--;
+    if(G.drawCounter[c] === 0){
+      G.hands[c].push(randomCardId());
+      log(`${c==='w'?'Белые':'Чёрные'}: получена новая карточка.`);
+    }
+  }
+
+  G.turn = oppOf(c);
+  if(G.skipNext[G.turn]){
+    G.skipNext[G.turn] = false;
+    log(`${G.turn==='w'?'Белые':'Чёрные'} пропускают ход.`);
+    G.turn = oppOf(G.turn);
+  }
+  beginTurn();
+  G.selected = null;
+  G.legal = [];
+  evaluate();
+  render();
+}
+
+function applySuitEffect(p, r, c){
+  if(p.type === 'k') return;
+  const suit = G.suits.get(key(r,c));
+  if(!suit) return;
+  if(suit === 'hearts'){
+    p.suitKnightTurns = 10;
+    log(`♥ Фигура на ${sqName(r,c)} получила ход коня (5 ходов).`);
+  } else if(suit === 'diamonds'){
+    if(p.type !== 'b'){
+      p.originalType = p.type;
+      p.type = 'b';
+    }
+    p.tempBishopTurns = 10;
+    log(`♦ Фигура на ${sqName(r,c)} стала слоном (5 ходов).`);
+  } else if(suit === 'spades'){
+    p.suitRookTurns = 10;
+    log(`♠ Фигура на ${sqName(r,c)} получила ход ладьи (5 ходов).`);
+  }
+}
+
+function doMove(m){
+  if(G.blitzTimer){ clearTimeout(G.blitzTimer); G.blitzTimer = null; }
+  const p = getPieceAt(m.from.r, m.from.c, !!m.fromBoard2);
+  if(!p) return;
+
+  const targetPiece = getPieceAt(m.to.r, m.to.c, !!m.toBoard2);
+  if(targetPiece && G.eff.dnd > 0){
+    const roll = Math.floor(Math.random() * 20) + 1;
+    log(`🎲 D&D: выпало ${roll}.`);
+    if(roll < 10){
+      log(`🎲 Взятие не удалось!`);
+      if(p.type !== 'k'){
+        setPieceAt(m.from.r, m.from.c, !!m.fromBoard2, null);
+        log(`🎲 Фигура нападавшего исчезла.`);
+      }
+      G.selected = null; G.legal = [];
+      endTurn(); return;
+    }
+  }
+
+  const u = makeMove(m);
+  G.lastMove = {from:m.from, to:m.to, fromB2:!!m.fromBoard2, toB2:!!m.toBoard2};
+
+  if((u.captured) && G.eff.knightify[p.color] && p.type==='p'){
+    p.type = 'n';
+    log(`🐴 Пешка превратилась в коня при взятии!`);
+  }
+
+  if(p.type==='p'){
+    if(m.toBoard2){
+      if((p.color==='w' && m.to.r===G.b2.minR) || (p.color==='b' && m.to.r===G.b2.maxR)){
+        p.type = 'q'; log(`↑ Пешка прошла в ферзи!`);
+      }
+    } else if(!m.fromBoard2){
+      const promoRow = p.color==='w' ? G.minR : G.maxR;
+      if(m.to.r===promoRow){ p.type = 'q'; log(`↑ Пешка прошла в ферзи!`); }
+    }
+  }
+
+  if(!m.toBoard2){
+    const destKey = key(m.to.r, m.to.c);
+
+    // Ангел: сбрасывает эффект клетки при входе
+    if(p.isAngel){
+      let cleared = false;
+      if(G.suits.delete(destKey)){ cleared = true; }
+      if(G.sunCells.delete(destKey)){ cleared = true; }
+      if(G.moonCells.delete(destKey)){ cleared = true; }
+      if(G.wifiCells.delete(destKey)){ cleared = true; }
+      if(G.fire.delete(destKey)){ cleared = true; }
+      if(G.blocked.delete(destKey)){ cleared = true; }
+      if(G.circles.delete(destKey)){ cleared = true; }
+      if(G.goldCells.delete(destKey)){ cleared = true; }
+      if(G.meteorCells.delete(destKey)){ cleared = true; }
+      if(G.clubsZones.delete(destKey)){ cleared = true; }
+      if(cleared) log(`😇 Ангел сбросил эффект клетки ${sqName(m.to.r,m.to.c)}.`);
+    }
+
+    if(G.cups.has(destKey)){
+      G.cups.delete(destKey);
+      if(p.type !== 'q'){ p.type = 'q'; log(`🏆 Кубок! Фигура стала ферзём.`); }
+    }
+    if(G.greenFlags.has(destKey) && p.type==='k'){
+      G.greenFlags.delete(destKey);
+      p.type = 'q';
+      log(`🏁 Король подобрал зелёный флаг и стал ферзём!`);
+      ensureKings();
+    }
+    if(G.letters.has(destKey)){
+      const letter = G.letters.get(destKey);
+      G.letters.delete(destKey);
+      p.yellow = true;
+      log(`🃏 Фигура подобрала букву ${letter} и стала жёлтой!`);
+    }
+    if(G.houses.has(destKey) && p.type === 'b'){
+      G.houses.delete(destKey);
+      p.type = 'r';
+      log(`🏠 Слон стал ладьёй (Монополия).`);
+    }
+    applySuitEffect(p, m.to.r, m.to.c);
+
+    // Превосходство: король на жёлтой клетке → шашка появляется в начале доски, клетка становится обычной
+    if(p.type === 'k' && G.goldCells.has(destKey)){
+      G.goldCells.delete(destKey);
+      const startRow = p.color==='w' ? G.maxR : G.minR;
+      let placed = false;
+      for(let c=G.minC;c<=G.maxC;c++){
+        if(!G.board[startRow][c] && !isBlockedCell(startRow,c)){
+          const np = mk(p.color, 'c');
+          np.moved = true;
+          G.board[startRow][c] = np;
+          log(`⭐ Превосходство: король собрал жёлтую клетку — на ${sqName(startRow,c)} появилась шашка.`);
+          placed = true;
+          break;
+        }
+      }
+      if(!placed) log('⭐ Превосходство: не нашлось места для шашки.');
+    }
+
+    // Алгебра: король собирает цифры по порядку
+    if(p.type === 'k' && G.algebraMap.has(destKey)){
+      const num = G.algebraMap.get(destKey);
+      const expected = G.algebraCollected[p.color] + 1;
+      if(num === expected){
+        G.algebraMap.delete(destKey);
+        G.algebraCollected[p.color] = num;
+        log(`🔢 Король ${p.color==='w'?'белых':'чёрных'} собрал цифру ${num} (${num}/3).`);
+        if(G.algebraCollected[p.color] === 3){
+          // все фигуры противника исчезают
+          const enemyColor = oppOf(p.color);
+          let removed = 0;
+          for(const e of allPieces(enemyColor)){
+            if(e.p.type !== 'k'){
+              setPieceAt(e.r, e.c, e.b2, null);
+              removed++;
+            }
+          }
+          log(`🔢 Алгебра! Король собрал 1-2-3. Исчезло фигур противника: ${removed}.`);
+          G.algebraCollected[p.color] = 0;
+          G.algebraMap.clear();
+        }
+      } else {
+        log(`🔢 Неверная цифра: нужно ${expected}, а на клетке ${num}.`);
+      }
+    }
+  }
+
+  if(u.captured && G.eff.captureLosePawn[p.color] > 0){
+    G.eff.captureLosePawn[p.color]--;
+    const o = oppOf(p.color);
+    const pawns = allPieces(o).filter(x=>x.p.type==='p');
+    if(pawns.length){
+      const t = pick(pawns);
+      G.board[t.r][t.c] = null;
+      log(`💀 Противник теряет пешку.`);
+    }
+  }
+
+  let boom = false;
+  if(!m.toBoard2){
+    const kk = key(m.to.r, m.to.c);
+    if(G.mines.has(kk)){ G.mines.delete(kk); boom = true; log('💣 Сработала мина!'); }
+    else if(G.flags.has(kk)){
+      if(Math.random() < 0.5){ boom = true; log('🚩 Флажок взорвался!'); }
+      else log('🚩 Флажок не сработал.');
+    }
+  }
+
+  if(boom){
+    if(p.type==='k'){ log('👑 Король невредим.'); }
+    else { setPieceAt(m.to.r, m.to.c, !!m.toBoard2, null); log('💥 Фигура уничтожена.'); }
+  }
+
+  G.selected = null;
+  G.legal = [];
+  endTurn();
+}
+
+function useCard(color, id){
+  if(G.over || G.turn!==color) return;
+  if(G.cardUsedThisTurn[color] || !G.canUseCard[color]) return;
+  const idx = G.hands[color].indexOf(id);
+  if(idx < 0) return;
+
+  G.hands[color].splice(idx,1);
+  G.cardUsedThisTurn[color] = true;
+  G.pendingBlock[color] = true;
+  G.drawCounter[color] = 2;
+
+  applyCard(color, id);
+
+  G.selected = null;
+  G.legal = [];
+  evaluate();
+  render();
+}
+
+function log(msg){
+  if(!G) return;
+  G.log.unshift(msg);
+  if(G.log.length > 40) G.log.pop();
+}
+
+/* ============================ ОТРИСОВКА ============================ */
+function computeCellSize(){
+  const W = G.maxC - G.minC + 1;
+  const H = G.maxR - G.minR + 1;
+  const sideW = 380;
+  const availW = Math.max(280, window.innerWidth - sideW - 90);
+  const availH = Math.max(280, window.innerHeight - 150);
+  let cell = Math.floor(Math.min(availW/W, availH/H));
+  if(G.b2Active){
+    const W2 = G.b2.maxC - G.b2.minC + 1;
+    const H2 = G.b2.maxR - G.b2.minR + 1;
+    const cellSide = Math.floor(Math.min(availW/(W + W2), availH/Math.max(H, H2)));
+    cell = Math.min(cell, cellSide);
+  }
+  return Math.max(20, Math.min(68, cell));
+}
+
+function render(){
+  const cell = computeCellSize();
+  renderMainBoard(cell);
+  renderSecondBoard(cell);
+  renderPanels();
+  renderStatus();
+  renderLog();
+}
+
+function applySuitClass(cellEl, r, c){
+  const suit = G.suits.get(key(r,c));
+  if(!suit) return;
+  if(suit === 'hearts') cellEl.style.background = '#b71c1c';
+  else if(suit === 'diamonds') cellEl.style.background = '#d84315';
+  else if(suit === 'clubs') cellEl.style.background = '#4a148c';
+  else if(suit === 'spades') cellEl.style.background = '#1a237e';
+}
+
+function appendSuitMarker(cellEl, r, c){
+  const suit = G.suits.get(key(r,c));
+  if(!suit) return;
+  const symbols = {hearts:'♥', diamonds:'♦', clubs:'♣', spades:'♠'};
+  const colors = {hearts:'#ff5252', diamonds:'#ffab40', clubs:'#e1bee7', spades:'#b3e5fc'};
+  const e = document.createElement('span');
+  e.className = 'marker-suit';
+  e.textContent = symbols[suit];
+  e.style.color = colors[suit];
+  cellEl.appendChild(e);
+}
+
+function renderMainBoard(cell){
+  const W = G.maxC - G.minC + 1;
+  const boardEl = document.getElementById('board');
+  boardEl.style.setProperty('--cell', cell + 'px');
+  boardEl.style.gridTemplateColumns = `repeat(${W}, ${cell}px)`;
+  boardEl.innerHTML = '';
+  const frag = document.createDocumentFragment();
+
+  for(let r=G.minR; r<=G.maxR; r++){
+    for(let c=G.minC; c<=G.maxC; c++){
+      const cellEl = document.createElement('div');
+      cellEl.className = 'cell ' + (((r+c)%2) ? 'dark' : 'light');
+      cellEl.dataset.r = r; cellEl.dataset.c = c; cellEl.dataset.b2 = 'false';
+
+      const k = key(r,c);
+      if(G.blocked.has(k)) cellEl.classList.add('blocked');
+      if(G.greenCells.has(k)) cellEl.classList.add('green');
+      if(G.blueCells.has(k)) cellEl.classList.add('blue');
+      if(G.redCells.has(k)) cellEl.classList.add('red');
+      if(G.fire.has(k)) cellEl.classList.add('fire');
+      if(G.circles.has(k)) cellEl.classList.add('circle');
+      if(G.clubsZones.has(k)) cellEl.classList.add('clubsZone');
+      if(G.sunCells.has(k)) cellEl.classList.add('sun');
+      if(G.moonCells.has(k)) cellEl.classList.add('moon');
+      if(G.endgameCells.has(k)) cellEl.classList.add('endgame');
+      if(G.goldCells.has(k)) cellEl.classList.add('gold');
+      if(G.wifiCells.has(k)) cellEl.classList.add('wifi');
+      if(G.dynamiteMap.has(k)) cellEl.classList.add('dynamite');
+      if(G.meteorCells.has(k)) cellEl.classList.add('meteor');
+      applySuitClass(cellEl, r, c);
+
+      if(G.lastMove && !G.lastMove.fromB2 && G.lastMove.from.r===r && G.lastMove.from.c===c) cellEl.classList.add('lastmove');
+      if(G.lastMove && !G.lastMove.toB2 && G.lastMove.to.r===r && G.lastMove.to.c===c) cellEl.classList.add('lastmove');
+      if(G.selected && !G.selected.b2 && G.selected.r===r && G.selected.c===c) cellEl.classList.add('selected');
+
+      const mv = G.legal.find(m=>m.to.r===r && m.to.c===c && !m.toBoard2);
+      if(mv) cellEl.classList.add((G.board[r][c] || mv.enPassant) ? 'capture' : 'movehint');
+
+      const p = G.board[r][c];
+      if(p){
+        const sp = document.createElement('span');
+        sp.className = 'piece ' + (p.color==='w' ? 'pw' : p.color==='b' ? 'pb' : 'pneutral');
+        sp.dataset.type = p.type;
+        if(p.statue !== 0) sp.classList.add('statue');
+        if(p.type==='p' && G.eff.pawnsInvisible>0) sp.classList.add('ghost');
+        if(p.canCaptureForward && p.type==='p') sp.classList.add('berserk');
+        if(p.yellow) sp.classList.add('yellow');
+        if(p.suitKnightTurns>0 || p.suitRookTurns>0 || p.tempBishopTurns>0) sp.classList.add('suited');
+        if(p.type==='ghost') sp.classList.add('ghost-piece');
+        if(p.type==='demon') sp.classList.add('demon-piece');
+        if(p.isMonarch) sp.classList.add('purple');
+        if(p.isAngel) sp.classList.add('holy');
+        if(p.isEye) sp.classList.add('eye');
+        sp.textContent = PIECE_CHARS[p.type] || '?';
+        cellEl.appendChild(sp);
+
+        if(p.type === 'k' && G.clownHat[p.color]){
+          const hat = document.createElement('span');
+          hat.textContent = '🤡';
+          hat.style.position = 'absolute'; hat.style.top = '0'; hat.style.right = '0';
+          hat.style.fontSize = 'calc(var(--cell)*0.4)';
+          hat.style.pointerEvents = 'none'; hat.style.zIndex = '5';
+          cellEl.appendChild(hat);
+        }
+      } else {
+        if(G.mines.has(k)){ const e=document.createElement('span'); e.className='marker'; e.textContent='💣'; cellEl.appendChild(e); }
+        else if(G.flags.has(k)){ const e=document.createElement('span'); e.className='marker'; e.textContent='🚩'; cellEl.appendChild(e); }
+        else if(G.cups.has(k)){ const e=document.createElement('span'); e.className='marker'; e.textContent='🏆'; cellEl.appendChild(e); }
+        else if(G.greenFlags.has(k)){ const e=document.createElement('span'); e.className='marker'; e.textContent='🏁'; cellEl.appendChild(e); }
+        else if(G.letters.has(k)){
+          const e=document.createElement('span'); e.className='marker';
+          e.textContent=G.letters.get(k); e.style.color='#ffeb3b'; e.style.fontWeight='bold';
+          cellEl.appendChild(e);
+        }
+        else if(G.houses.has(k)){ const e=document.createElement('span'); e.className='marker'; e.textContent='🏠'; cellEl.appendChild(e); }
+      }
+      if(G.barracks.has(k)){ const e=document.createElement('span'); e.className='marker'; e.textContent='🏛'; e.style.right='2px'; e.style.bottom='2px'; e.style.left='auto'; e.style.top='auto'; cellEl.appendChild(e); }
+
+      // Маркеры разных карт
+      if(G.dynamiteMap.has(k)){
+        const e = document.createElement('span'); e.className='marker'; e.textContent='🧨';
+        e.style.left = '2px'; e.style.top = 'auto'; e.style.bottom = '2px';
+        cellEl.appendChild(e);
+      }
+      if(G.wifiCells.has(k)){
+        const e = document.createElement('span'); e.className='marker'; e.textContent='📶';
+        e.style.right='2px'; e.style.top='2px'; e.style.left='auto';
+        cellEl.appendChild(e);
+      }
+      if(G.meteorCells.has(k)){
+        const e = document.createElement('span'); e.className='marker'; e.textContent='☄';
+        e.style.right='2px'; e.style.bottom='2px'; e.style.left='auto'; e.style.top='auto';
+        cellEl.appendChild(e);
+      }
+      if(G.algebraMap.has(k)){
+        const e = document.createElement('span'); e.className='marker-num';
+        e.textContent = G.algebraMap.get(k);
+        cellEl.appendChild(e);
+      }
+
+      if(G.sunCells.has(k)){ const e = document.createElement('span'); e.className = 'marker-sun'; e.textContent = '☀'; cellEl.appendChild(e); }
+      if(G.moonCells.has(k)){ const e = document.createElement('span'); e.className = 'marker-sun'; e.textContent = '🌙'; cellEl.appendChild(e); }
+      appendSuitMarker(cellEl, r, c);
+
+      if(G.b2Active){
+        const L = getLinkFromMain(r,c);
+        if(L){ const e = document.createElement('span'); e.className = 'marker-portal'; e.textContent = '🌀'; cellEl.appendChild(e); }
+      }
+      if(G.portals.length === 2){
+        for(const pt of G.portals){
+          if(pt.r===r && pt.c===c){
+            const e = document.createElement('span');
+            e.className = 'marker-portal'; e.textContent = '🌀';
+            e.style.left = 'auto'; e.style.right = '2px';
+            cellEl.appendChild(e);
+          }
+        }
+      }
+
+      if(r === G.maxR){ const l = document.createElement('span'); l.className = 'coord file'; l.textContent = String.fromCharCode(97 + (c-G.minC)); cellEl.appendChild(l); }
+      if(c === G.minC){ const l = document.createElement('span'); l.className = 'coord rank'; l.textContent = String(G.maxR - r + 1); cellEl.appendChild(l); }
+      frag.appendChild(cellEl);
+    }
+  }
+  boardEl.appendChild(frag);
+}
+
+function renderSecondBoard(cell){
+  const el = document.getElementById('board2');
+  if(!G.b2Active){ el.style.display = 'none'; return; }
+  el.style.display = 'grid';
+  el.style.setProperty('--cell', cell + 'px');
+  const W2 = G.b2.maxC - G.b2.minC + 1;
+  el.style.gridTemplateColumns = `repeat(${W2}, ${cell}px)`;
+  el.innerHTML = '';
+  const frag = document.createDocumentFragment();
+
+  for(let r=G.b2.minR; r<=G.b2.maxR; r++){
+    for(let c=G.b2.minC; c<=G.b2.maxC; c++){
+      const cellEl = document.createElement('div');
+      cellEl.className = 'cell ' + (((r+c)%2) ? 'dark' : 'light');
+      cellEl.dataset.r = r; cellEl.dataset.c = c; cellEl.dataset.b2 = 'true';
+
+      if(G.lastMove && G.lastMove.fromB2 && G.lastMove.from.r===r && G.lastMove.from.c===c) cellEl.classList.add('lastmove');
+      if(G.lastMove && G.lastMove.toB2 && G.lastMove.to.r===r && G.lastMove.to.c===c) cellEl.classList.add('lastmove');
+      if(G.selected && G.selected.b2 && G.selected.r===r && G.selected.c===c) cellEl.classList.add('selected');
+
+      const mv = G.legal.find(m=>m.to.r===r && m.to.c===c && m.toBoard2);
+      if(mv) cellEl.classList.add(G.board2[r][c] ? 'capture' : 'movehint');
+
+      const p = G.board2[r][c];
+      if(p){
+        const sp = document.createElement('span');
+        sp.className = 'piece ' + (p.color==='w' ? 'pw' : p.color==='b' ? 'pb' : 'pneutral');
+        sp.dataset.type = p.type;
+        if(p.statue !== 0) sp.classList.add('statue');
+        if(p.type==='p' && G.eff.pawnsInvisible>0) sp.classList.add('ghost');
+        if(p.canCaptureForward && p.type==='p') sp.classList.add('berserk');
+        if(p.yellow) sp.classList.add('yellow');
+        if(p.suitKnightTurns>0 || p.suitRookTurns>0 || p.tempBishopTurns>0) sp.classList.add('suited');
+        if(p.type==='ghost') sp.classList.add('ghost-piece');
+        if(p.type==='demon') sp.classList.add('demon-piece');
+        if(p.isMonarch) sp.classList.add('purple');
+        if(p.isAngel) sp.classList.add('holy');
+        if(p.isEye) sp.classList.add('eye');
+        sp.textContent = PIECE_CHARS[p.type] || '?';
+        cellEl.appendChild(sp);
+      }
+
+      const L = getLinkFromSecond(r,c);
+      if(L){ const e = document.createElement('span'); e.className = 'marker-portal'; e.textContent = '🌀'; cellEl.appendChild(e); }
+
+      frag.appendChild(cellEl);
+    }
+  }
+  el.appendChild(frag);
+}
+
+function renderStatus(){
+  const el = document.getElementById('status');
+  if(G.over){
+    el.textContent = G.msg;
+    el.className = 'status over';
+    return;
+  }
+  if(G.endgameActive){
+    el.textContent = '⚡ ТУПИКОВАЯ РЕАЛЬНОСТЬ — заполните 4 золотые клетки!';
+    el.className = 'status reality';
+    return;
+  }
+  let s = G.turn==='w' ? 'Ход белых' : 'Ход чёрных';
+  const k = findKing(G.turn);
+  if(k && G.eff.kingImmune[G.turn]<=0 && isAttackedBoard(k.r,k.c,oppOf(G.turn), !!k.b2)) s += ' — ШАХ!';
+  if(G.eff.kingImmune[G.turn] > 0) s += ' (король неуязвим)';
+  if(G.eff.blitz > 0) s += ' ⏱';
+  if(G.eff.dnd > 0) s += ' 🎲';
+  if(G.eff.unbounded && G.eff.unboundedDelay > 0) s += ' ♾(част.) ' + Math.ceil(G.eff.unboundedDelay/2);
+  if(G.b2Active) s += ' 🔮';
+  el.textContent = s;
+  el.className = 'status' + (s.indexOf('ШАХ') >= 0 ? ' check' : '');
+}
+
+function renderPanels(){
+  for(const color of ['w','b']){
+    const el = document.getElementById(color==='w' ? 'panelW' : 'panelB');
+    el.classList.toggle('active', G.turn===color && !G.over);
+    const cardsEl = el.querySelector('.cards');
+    cardsEl.innerHTML = '';
+    for(const id of G.hands[color]){
+      const card = CARDS.find(c=>c.id===id);
+      if(!card) continue;
+      const d = document.createElement('div');
+      d.className = 'card';
+      const canUse = (G.turn===color) && !G.over &&
+                     !G.cardUsedThisTurn[color] && G.canUseCard[color];
+      if(!canUse) d.classList.add('disabled');
+      d.innerHTML =
+        '<div class="cicon">' + card.icon + '</div>' +
+        '<div class="cname">' + card.name + '</div>' +
+        '<div class="cdesc">' + card.desc + '</div>';
+      d.addEventListener('click', function(){ if(canUse) useCard(color, id); });
+      cardsEl.appendChild(d);
+    }
+    if(G.hands[color].length === 0){
+      const e = document.createElement('div');
+      e.className = 'cdesc';
+      e.style.padding = '4px 2px';
+      e.textContent = 'Карточек нет.';
+      cardsEl.appendChild(e);
+    }
+  }
+}
+
+function renderLog(){
+  const el = document.getElementById('log');
+  el.innerHTML = '';
+  for(const line of G.log){
+    const d = document.createElement('div');
+    d.textContent = line;
+    el.appendChild(d);
+  }
+}
+
+/* ============================ ВВОД ============================ */
+function onCellClick(r, c, b2){
+  if(G.over) return;
+  b2 = !!b2;
+  const mv = G.legal.find(m => m.to.r===r && m.to.c===c && (!!m.toBoard2 === b2));
+  if(mv){ doMove(mv); return; }
+
+  const p = b2 ? G.board2[r][c] : G.board[r][c];
+  if(p && p.color===G.turn){
+    G.selected = {r,c,b2};
+    const all = legalMoves(G.turn);
+    G.legal = all.filter(m => m.from.r===r && m.from.c===c && (!!m.fromBoard2 === b2));
+    render();
+    return;
+  }
+  G.selected = null;
+  G.legal = [];
+  render();
+}
+
+/* ============================ НОВАЯ ИГРА ============================ */
+function setupPieces(){
+  const back = ['r','n','b','q','k','b','n','r'];
+  const b = G.board;
+  for(let i=0;i<8;i++){
+    b[INIT.minR][INIT.minC+i]     = mk('b', back[i]);
+    b[INIT.minR+1][INIT.minC+i]   = mk('b','p');
+    b[INIT.maxR][INIT.minC+i]     = mk('w', back[i]);
+    b[INIT.maxR-1][INIT.minC+i]   = mk('w','p');
+  }
+}
+
+function newGame(){
+  uid = 1;
+  G = {
+    minR: INIT.minR, maxR: INIT.maxR, minC: INIT.minC, maxC: INIT.maxC,
+    board: Array.from({length:SIZE}, ()=>Array(SIZE).fill(null)),
+    b2: {minR: 0, maxR: 3, minC: 0, maxC: 3},
+    board2: Array.from({length:4}, ()=>Array(4).fill(null)),
+    b2Active: false,
+    b2Links: [],
+    blocked: new Set(),
+    mines: new Set(),
+    flags: new Set(),
+    portals: [],
+    greenCells: new Set(),
+    blueCells: new Set(),
+    redCells: new Map(),
+    cups: new Set(),
+    greenFlags: new Set(),
+    letters: new Map(),
+    circles: new Set(),
+    fire: new Set(),
+    fireTimer: 7,
+    suits: new Map(),
+    clubsZones: new Set(),
+    sunCells: new Map(),
+    moonCells: new Map(),
+    houses: new Set(),
+    barracks: new Set(),
+    endgameCells: new Set(),
+    endgameActive: false,
+    goldCells: new Set(),
+    wifiCells: new Set(),
+    dynamiteMap: new Map(),
+    meteorCells: new Set(),
+    algebraMap: new Map(),
+    algebraCollected: {w:0, b:0},
+    clownHat: {w:false, b:false},
+    turn: 'w',
+    selected: null,
+    legal: [],
+    enPassant: null,
+    lastMove: null,
+    over: false,
+    msg: '',
+    log: [],
+    eff: {
+      bishopsKnights: false,
+      bishopsRooks: 0,
+      kingImmune: {w:0, b:0},
+      noCapture: {w:0, b:0},
+      knightsBackward: 0,
+      pawnsAnyDir: 0,
+      pawnsInvisible: 0,
+      kingTwoStep: {w:0, b:0},
+      noCards: 0,
+      cardLock: {w:0, b:0},
+      queenAsPawn: {w:0, b:0},
+      knightsRooks: 0,
+      pawnsBackward: {w:0, b:0},
+      pawnsTwoStep: 0,
+      kingAsRook: {w:0, b:0},
+      captureLosePawn: {w:0, b:0},
+      knightify: {w:false, b:false},
+      noDraws: false,
+      bioWeapon: 0,
+      blitz: 0,
+      evolution: false,
+      unbounded: false,
+      unboundedDelay: 0,
+      dnd: 0,
+      stalemateReality: false,
+      horseHead: false,
+      wifiNoCaptureOnCell: {}
+    },
+    hands: {w:[], b:[]},
+    canUseCard: {w:true, b:true},
+    pendingBlock: {w:false, b:false},
+    cardUsedThisTurn: {w:false, b:false},
+    drawCounter: {w:0, b:0},
+    skipNext: {w:false, b:false},
+    blitzTimer: null
+  };
+
+  setupPieces();
+
+  const start = shuffle(CARDS.map(c=>c.id)).slice(0,3);
+  G.hands.w = start.slice();
+  G.hands.b = start.slice();
+
+  beginTurn();
+  log('Новая партия. У каждого игрока по 3 одинаковые карточки.');
+  render();
+}
+
+/* ============================ ЗАПУСК ============================ */
+document.getElementById('board').addEventListener('click', function(e){
+  const cell = e.target.closest('.cell');
+  if(!cell) return;
+  const r = parseInt(cell.dataset.r, 10);
+  const c = parseInt(cell.dataset.c, 10);
+  if(isNaN(r) || isNaN(c)) return;
+  onCellClick(r, c, false);
+});
+document.getElementById('board2').addEventListener('click', function(e){
+  const cell = e.target.closest('.cell');
+  if(!cell) return;
+  const r = parseInt(cell.dataset.r, 10);
+  const c = parseInt(cell.dataset.c, 10);
+  if(isNaN(r) || isNaN(c)) return;
+  onCellClick(r, c, true);
+});
+document.getElementById('newGameBtn').addEventListener('click', function(){ newGame(); });
+window.addEventListener('resize', function(){ if(G) render(); });
+
+newGame();
+
+})();
+</script>
+</body>
+</html>
